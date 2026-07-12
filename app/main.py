@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.api.routers.auth import router as auth_router
 from app.config import settings
 from app.exceptions import (
     AuthorizationError,
@@ -14,6 +15,8 @@ from app.exceptions import (
 from app.middleware.tenancy import TenantMiddleware
 
 app = FastAPI(title="WISPGen", version="0.1.0")
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.
 app.add_middleware(
@@ -42,7 +45,7 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
 
 @app.exception_handler(AuthorizationError)
 async def authorization_error_handler(request: Request, exc: AuthorizationError) -> JSONResponse:
-    return _error_response("unauthorized", str(exc), 401)
+    return _error_response(exc.code, str(exc), 401)
 
 
 @app.exception_handler(ConflictError)

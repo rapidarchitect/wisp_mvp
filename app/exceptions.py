@@ -16,6 +16,10 @@ class NotFoundError(WispgenError):
 class AuthorizationError(WispgenError):
     """Authentication or authorization failure."""
 
+    def __init__(self, message: str, code: str = "unauthorized") -> None:
+        super().__init__(message)
+        self.code = code
+
 
 class ConflictError(WispgenError):
     """Entity is in a conflicting state for the requested operation."""

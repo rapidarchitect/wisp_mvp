@@ -61,10 +61,10 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
 | AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | planned |
 | AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | planned |
+| AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-04 | Wrong TOTP counts toward lockout | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | planned |
-| AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | planned |
+| AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | green |
+| AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-07 | Password reset via 30-min link | authentication | integration | test_authentication | Task 05 | planned |
 | USER-01 | Invite user with two roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
 | USER-02 | Invited user activates account | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
