@@ -1,60 +1,37 @@
-"""Authentication API router (Task 03)."""
+"""Authentication API router (Task 03 + 04)."""
 
 from fastapi import APIRouter, Header, Request
 
 from app.exceptions import AuthorizationError
 from app.middleware.tenancy import get_tenant_db_from_request
 from app.models.auth import LoginRequest, SessionResponse
-from app.services.audit import audit
-from app.services.auth import (
-    create_session,
-    get_user_by_email,
-    get_user_from_session,
-    is_account_locked,
-    record_failed_login,
-    reset_failed_attempts,
-    verify_password,
-)
+from app.models.totp import TotpEnrollmentResponse
+from app.services.auth import get_user_from_session, login
 
 router = APIRouter()
 
 
 @router.post("/login")
-async def login(request: Request, payload: LoginRequest) -> SessionResponse:
-    """Authenticate with email and password (TOTP added in Task 04).
+async def auth_login(
+    request: Request,
+    payload: LoginRequest,
+) -> SessionResponse | TotpEnrollmentResponse:
+    """Authenticate with email and password; TOTP required once enrolled.
 
-    Returns a session token on success. On failure returns 401 with an error
-    code of either `invalid_credentials` or `account_locked`.
+    - First login for a user returns TOTP enrollment details (C-04).
+    - Subsequent logins require a valid TOTP code.
+    - Failures return 401 with code `invalid_credentials` or `account_locked`.
     """
     db = get_tenant_db_from_request(request)
+    result = await login(db, payload.email, payload.password, payload.totp_code)
 
-    user = await get_user_by_email(db, payload.email)
-    if user is None:
-        raise AuthorizationError("Invalid credentials", code="invalid_credentials")
-
-    if await is_account_locked(user):
-        raise AuthorizationError("Account locked", code="account_locked")
-
-    if not verify_password(payload.password, user["password_hash"]):
-        await record_failed_login(db, user)
-        await audit(
-            db,
-            actor_user_id=user["id"],
-            event_type="login_failed",
-            subject=payload.email,
-            detail="invalid_credentials",
+    if result["status"] == "enrollment_required":
+        return TotpEnrollmentResponse(
+            enrollment_required=True,
+            secret=result["secret"],
+            provisioning_uri=result["provisioning_uri"],
         )
-        raise AuthorizationError("Invalid credentials", code="invalid_credentials")
-
-    await reset_failed_attempts(db, user["id"])
-    token = await create_session(db, user["id"])
-    await audit(
-        db,
-        actor_user_id=user["id"],
-        event_type="login_succeeded",
-        subject=payload.email,
-    )
-    return SessionResponse(token=token)
+    return SessionResponse(token=result["token"])
 
 
 @router.get("/me")

@@ -59,10 +59,10 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
 | SIGN-04 | Workspace address must be unique | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
 | SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | planned |
+| AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | green |
+| AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | green |
 | AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | green |
-| AUTH-04 | Wrong TOTP counts toward lockout | authentication | integration | test_authentication | Task 04 | planned |
+| AUTH-04 | Wrong TOTP counts toward lockout | authentication | integration | test_authentication | Task 04 | green |
 | AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-07 | Password reset via 30-min link | authentication | integration | test_authentication | Task 05 | planned |

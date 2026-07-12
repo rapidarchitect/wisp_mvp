@@ -8,6 +8,7 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(min_length=12)
+    totp_code: str | None = None
 
 
 class SessionResponse(BaseModel):

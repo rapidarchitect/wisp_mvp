@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
-from app.exceptions import ValidationError
+from app.exceptions import AuthorizationError, ValidationError
+from app.services.audit import audit
 
 if TYPE_CHECKING:
     from app.db.tenant import TenantDB
@@ -152,3 +153,82 @@ async def get_user_from_session(
     user = dict(row)
     user["roles"] = json.loads(user["roles"])
     return user
+
+
+async def login(
+    db: "TenantDB",
+    email: str,
+    password: str,
+    totp_code: str | None = None,
+    *,
+    totp_issuer: str = "WISPGen",
+) -> dict:
+    """Authenticate with email, password, and (when enrolled) TOTP.
+
+    Returns one of:
+      - {"status": "enrollment_required", "secret": str, "provisioning_uri": str}
+      - {"status": "session", "token": str}
+
+    Raises:
+        AuthorizationError: with code `invalid_credentials` or `account_locked`.
+    """
+    from app.services.totp import generate_totp_secret, get_provisioning_uri, verify_totp
+
+    user = await get_user_by_email(db, email)
+    if user is None:
+        raise AuthorizationError("Invalid credentials", code="invalid_credentials")
+
+    if await is_account_locked(user):
+        raise AuthorizationError("Account locked", code="account_locked")
+
+    if not verify_password(password, user["password_hash"]):
+        await record_failed_login(db, user)
+        await audit(
+            db,
+            actor_user_id=user["id"],
+            event_type="login_failed",
+            subject=email,
+            detail="invalid_credentials",
+        )
+        raise AuthorizationError("Invalid credentials", code="invalid_credentials")
+
+    if not user.get("totp_enrolled"):
+        secret = generate_totp_secret()
+        provisioning_uri = get_provisioning_uri(secret, email, totp_issuer)
+        await db.execute(
+            "UPDATE users SET totp_secret = ? WHERE id = ?",
+            (secret, user["id"]),
+        )
+        await db.commit()
+        await audit(
+            db,
+            actor_user_id=user["id"],
+            event_type="totp_enrollment_required",
+            subject=email,
+        )
+        return {
+            "status": "enrollment_required",
+            "secret": secret,
+            "provisioning_uri": provisioning_uri,
+        }
+
+    if totp_code is None or not verify_totp(user["totp_secret"], totp_code):
+        await record_failed_login(db, user)
+        await audit(
+            db,
+            actor_user_id=user["id"],
+            event_type="login_failed",
+            subject=email,
+            detail="invalid_totp",
+        )
+        raise AuthorizationError("Invalid credentials", code="invalid_credentials")
+
+    await reset_failed_attempts(db, user["id"])
+    token = await create_session(db, user["id"])
+    await audit(
+        db,
+        actor_user_id=user["id"],
+        event_type="login_succeeded",
+        subject=email,
+    )
+    return {"status": "session", "token": token}

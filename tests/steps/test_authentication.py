@@ -4,7 +4,24 @@ import secrets
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
+import pyotp
 from pytest_bdd import given, parsers, scenario, then, when
+
+
+@scenario(
+    "../../features/authentication.feature",
+    "First login requires TOTP enrollment (AUTH-01)",
+)
+def test_first_login_requires_totp_enrollment_auth01():
+    pass
+
+
+@scenario(
+    "../../features/authentication.feature",
+    "Login with password and TOTP (AUTH-02)",
+)
+def test_login_with_password_and_totp_auth02():
+    pass
 
 
 @scenario(
@@ -12,6 +29,14 @@ from pytest_bdd import given, parsers, scenario, then, when
     "Wrong password rejected (AUTH-03)",
 )
 def test_wrong_password_rejected_auth03():
+    pass
+
+
+@scenario(
+    "../../features/authentication.feature",
+    "Wrong TOTP counts toward lockout (AUTH-04)",
+)
+def test_wrong_totp_counts_toward_lockout_auth04():
     pass
 
 
@@ -33,6 +58,25 @@ def test_expired_session_preserves_saved_work_auth06():
 
 def _tenant_db_path(data_dir, slug):
     return data_dir / "tenants" / f"{slug}.db"
+
+
+@given("the user has enrolled TOTP")
+def given_user_has_enrolled_totp(provisioned_tenant, data_dir, enrolled_user, context):
+    """Generate a TOTP secret and mark the user as enrolled."""
+    from app.services.totp import generate_totp_secret
+
+    secret = generate_totp_secret()
+    path = _tenant_db_path(data_dir, provisioned_tenant)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            "UPDATE users SET totp_secret = ?, totp_enrolled = 1 WHERE id = ?",
+            (secret, enrolled_user["id"]),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    context["totp_secret"] = secret
 
 
 @given(
@@ -101,6 +145,34 @@ def when_user_logs_in(client, context, enrolled_user, password):
     )
 
 
+@when(parsers.parse('the user logs in with password "{password}" and current TOTP'))
+def when_user_logs_in_with_current_totp(client, context, enrolled_user, password):
+    """POST /auth/login with a freshly generated TOTP code."""
+    secret = context["totp_secret"]
+    code = pyotp.TOTP(secret).now()
+    context["response"] = client.post(
+        "/auth/login",
+        json={
+            "email": enrolled_user["email"],
+            "password": password,
+            "totp_code": code,
+        },
+    )
+
+
+@when(parsers.parse('the user logs in with password "{password}" and TOTP "{totp_code}"'))
+def when_user_logs_in_with_totp(client, context, enrolled_user, password, totp_code):
+    """POST /auth/login with an explicit TOTP code."""
+    context["response"] = client.post(
+        "/auth/login",
+        json={
+            "email": enrolled_user["email"],
+            "password": password,
+            "totp_code": totp_code,
+        },
+    )
+
+
 @when(parsers.parse('the user logs in with password "{password}" {count:d} times'))
 def when_user_logs_in_multiple_times(client, context, enrolled_user, password, count):
     """Attempt login multiple times and keep the last response."""
@@ -131,6 +203,53 @@ def when_user_uses_expired_session(client, context, session_token):
             "/auth/me",
             headers={"Authorization": f"Bearer {session_token}"},
         )
+
+
+@then("the response requires TOTP enrollment")
+def then_response_requires_totp_enrollment(context):
+    """Assert the login response includes a TOTP secret and provisioning URI."""
+    response = context["response"]
+    assert response.status_code == 200
+    data = response.json()
+    assert data["enrollment_required"] is True
+    assert data["secret"]
+    assert data["provisioning_uri"]
+
+
+@then("the user has a TOTP secret")
+def then_user_has_totp_secret(provisioned_tenant, data_dir, enrolled_user):
+    """Verify the database user row now stores a TOTP secret."""
+    path = _tenant_db_path(data_dir, provisioned_tenant)
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            "SELECT totp_secret, totp_enrolled FROM users WHERE id = ?",
+            (enrolled_user["id"],),
+        )
+        row = cur.fetchone()
+        assert row[0] is not None
+    finally:
+        conn.close()
+
+
+@then("a session is created")
+def then_a_session_is_created(provisioned_tenant, data_dir, enrolled_user, context):
+    """Verify the login response contains a session token persisted in the DB."""
+    response = context["response"]
+    assert response.status_code == 200
+    data = response.json()
+    assert "token" in data
+
+    path = _tenant_db_path(data_dir, provisioned_tenant)
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM sessions WHERE user_id = ?",
+            (enrolled_user["id"],),
+        )
+        assert cur.fetchone()[0] == 1
+    finally:
+        conn.close()
 
 
 @then(parsers.parse('the login is rejected with "{code}"'))
@@ -171,6 +290,21 @@ def then_account_locked(provisioned_tenant, data_dir, enrolled_user):
         locked_until = datetime.fromisoformat(locked_until)
         now = datetime.now(UTC)
         assert timedelta(minutes=14) < (locked_until - now) < timedelta(minutes=16)
+    finally:
+        conn.close()
+
+
+@then("a failed login attempt is recorded")
+def then_failed_login_attempt_recorded(provisioned_tenant, data_dir, enrolled_user):
+    """Verify the user's failed_attempts counter has increased."""
+    path = _tenant_db_path(data_dir, provisioned_tenant)
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            "SELECT failed_attempts FROM users WHERE id = ?",
+            (enrolled_user["id"],),
+        )
+        assert cur.fetchone()[0] == 1
     finally:
         conn.close()
 
