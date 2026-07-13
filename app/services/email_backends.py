@@ -3,8 +3,10 @@
 import asyncio
 
 import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 
 from app.config import settings
+from app.exceptions import ExternalServiceError
 
 _sent_messages: list[dict] = []
 
@@ -22,17 +24,28 @@ class ConsoleEmailBackend:
 class SESEmailBackend:
     """Send transactional email via AWS SES."""
 
+    def __init__(self) -> None:
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            self._client = boto3.client("ses", region_name=settings.ses_region)
+        return self._client
+
     async def send(self, *, to: str, subject: str, body: str) -> None:
-        client = boto3.client("ses", region_name=settings.ses_region)
-        await asyncio.to_thread(
-            client.send_email,
-            Source=settings.email_from,
-            Destination={"ToAddresses": [to]},
-            Message={
-                "Subject": {"Data": subject},
-                "Body": {"Text": {"Data": body}},
-            },
-        )
+        client = self._get_client()
+        try:
+            await asyncio.to_thread(
+                client.send_email,
+                Source=settings.email_from,
+                Destination={"ToAddresses": [to]},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {"Text": {"Data": body}},
+                },
+            )
+        except (ClientError, BotoCoreError) as exc:
+            raise ExternalServiceError(f"SES send failed: {exc}") from exc
 
 
 def get_email_backend():

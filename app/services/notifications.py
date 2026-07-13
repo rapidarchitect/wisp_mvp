@@ -7,7 +7,7 @@ import orjson
 from app.db.tenant import TenantDB
 from app.exceptions import NotFoundError, ValidationError
 from app.services.email_backends import get_email_backend
-from app.services.notification_templates import render
+from app.services.notification_templates import TEMPLATES, render
 
 
 async def notify(
@@ -22,10 +22,15 @@ async def notify(
     if channel not in ("in_app", "email", "both"):
         raise ValidationError("channel must be in_app, email, or both", code="invalid_channel")
 
+    if kind not in TEMPLATES:
+        raise ValidationError(f"Unknown notification kind: {kind}", code="unknown_kind")
+
     try:
         subject, body = render(kind, payload)
     except KeyError as exc:
-        raise ValidationError(f"unknown_kind: {kind}", code="unknown_kind") from exc
+        raise ValidationError(
+            "Missing payload key for notification template", code="missing_payload_key"
+        ) from exc
 
     user = await db.fetchone(
         "SELECT id, email FROM users WHERE id = ?",
