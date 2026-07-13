@@ -61,6 +61,11 @@ async def test_assign_domain_success(tmp_path):
     assert result["reviewer_id"] == reviewer_id
     status = (await db.fetchone("SELECT status FROM domains WHERE code = 'AC'"))[0]
     assert status == "assigned"
+    assignment = await db.fetchone(
+        "SELECT assigned_at FROM domain_assignments WHERE domain_id = ?",
+        (result["domain_id"],),
+    )
+    assert assignment["assigned_at"] == result["assigned_at"]
     await db.close()
 
 
@@ -114,4 +119,67 @@ async def test_assign_domain_replacement_notifies_displaced_users(tmp_path):
     types = [r["type"] for r in rows]
     assert types.count("domain_unassigned") == 2
     assert types.count("domain_assigned") == 4
+    await db.close()
+
+
+async def test_assign_domain_creates_audit_event(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    await assign_domain(
+        db,
+        actor_user_id=42,
+        code="AC",
+        contributor_email="c@acme.app.wisp.llc",
+        reviewer_email="r@acme.app.wisp.llc",
+    )
+
+    event = await db.fetchone(
+        """
+        SELECT actor_user_id, event_type, subject, detail
+        FROM audit_events
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    )
+    assert event["actor_user_id"] == 42
+    assert event["event_type"] == "domain_assigned"
+    assert event["subject"] == "AC"
+    assert "c@acme.app.wisp.llc" in event["detail"]
+    assert "r@acme.app.wisp.llc" in event["detail"]
+    await db.close()
+
+
+async def test_assign_domain_persists_when_notification_fails(tmp_path, monkeypatch):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    contributor_id = await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    reviewer_id = await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("notification failure")
+
+    monkeypatch.setattr("app.services.domain_assignment.notify", _boom)
+
+    with pytest.raises(RuntimeError, match="notification failure"):
+        await assign_domain(
+            db,
+            actor_user_id=1,
+            code="AC",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+
+    status = (await db.fetchone("SELECT status FROM domains WHERE code = 'AC'"))[0]
+    assert status == "assigned"
+    assignment = await db.fetchone(
+        "SELECT contributor_id, reviewer_id FROM domain_assignments WHERE domain_id = ?",
+        (1,),
+    )
+    assert assignment["contributor_id"] == contributor_id
+    assert assignment["reviewer_id"] == reviewer_id
     await db.close()

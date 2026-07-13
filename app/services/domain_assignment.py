@@ -98,45 +98,45 @@ async def assign_domain(
         )
         assigned_at = assignment_row["assigned_at"]
 
-        for user_id, role in displaced:
-            if (role == "contributor" and user_id != contributor["id"]) or (
-                role == "reviewer" and user_id != reviewer["id"]
-            ):
-                await notify(
-                    db,
-                    user_id=user_id,
-                    kind="domain_unassigned",
-                    payload={"role": role, "domain_name": domain["name"]},
-                    channel="both",
-                )
-
-        await notify(
-            db,
-            user_id=contributor["id"],
-            kind="domain_assigned",
-            payload={"role": "contributor", "domain_name": domain["name"]},
-            channel="both",
-        )
-        await notify(
-            db,
-            user_id=reviewer["id"],
-            kind="domain_assigned",
-            payload={"role": "reviewer", "domain_name": domain["name"]},
-            channel="both",
-        )
-
-        await audit(
-            db,
-            actor_user_id=actor_user_id,
-            event_type="domain_assigned",
-            subject=domain["code"],
-            detail=f"contributor={contributor_email}, reviewer={reviewer_email}",
-        )
-
         await db.commit()
     except Exception:
         await db.execute("ROLLBACK")
         raise
+
+    for user_id, role in displaced:
+        if (role == "contributor" and user_id != contributor["id"]) or (
+            role == "reviewer" and user_id != reviewer["id"]
+        ):
+            await notify(
+                db,
+                user_id=user_id,
+                kind="domain_unassigned",
+                payload={"role": role, "domain_name": domain["name"]},
+                channel="both",
+            )
+
+    await notify(
+        db,
+        user_id=contributor["id"],
+        kind="domain_assigned",
+        payload={"role": "contributor", "domain_name": domain["name"]},
+        channel="both",
+    )
+    await notify(
+        db,
+        user_id=reviewer["id"],
+        kind="domain_assigned",
+        payload={"role": "reviewer", "domain_name": domain["name"]},
+        channel="both",
+    )
+
+    await audit(
+        db,
+        actor_user_id=actor_user_id,
+        event_type="domain_assigned",
+        subject=domain["code"],
+        detail=f"contributor={contributor_email}, reviewer={reviewer_email}",
+    )
 
     return {
         "domain_id": domain["id"],
