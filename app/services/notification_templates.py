@@ -3,7 +3,8 @@
 TEMPLATES: dict[str, tuple[str, str]] = {
     "account_deactivated": (
         "Your WISPGen account has been deactivated",
-        "Your WISPGen account ({email}) has been deactivated. Contact your administrator if you believe this was a mistake.",
+        "Your WISPGen account ({email}) has been deactivated. "
+        "Contact your administrator if you believe this was a mistake.",
     ),
     "roles_updated": (
         "Your WISPGen roles have been updated",

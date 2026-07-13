@@ -25,7 +25,7 @@ async def notify(
     try:
         subject, body = render(kind, payload)
     except KeyError as exc:
-        raise ValidationError(f"Unknown notification kind: {kind}", code="unknown_kind") from exc
+        raise ValidationError(f"unknown_kind: {kind}", code="unknown_kind") from exc
 
     user = await db.fetchone(
         "SELECT id, email FROM users WHERE id = ?",
@@ -83,7 +83,12 @@ async def get_notifications(
     params.append(limit)
 
     rows = await db.fetchall(sql, tuple(params))
-    return [dict(row) for row in rows]
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["payload"] = orjson.loads(item["payload"])
+        result.append(item)
+    return result
 
 
 async def mark_read(
