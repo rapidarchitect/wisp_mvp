@@ -2,9 +2,11 @@
 
 import json
 import sqlite3
-from pathlib import Path
 
 from pytest_bdd import given, parsers, scenario, then, when
+
+from tests.steps.common_steps import _domain_name  # noqa: F401  # registers shared BDD steps
+from tests.steps.conftest import _tenant_db_path
 
 
 @scenario(
@@ -38,26 +40,33 @@ def test_assn05_unassigned_domains_flagged_to_admin():
     pass
 
 
-_DOMAIN_NAMES = {
-    "AC": "Access Control",
-    "PE": "Personnel",
-}
-
-
-def _tenant_db_path(data_dir: Path, slug: str) -> Path:
-    return data_dir / "tenants" / f"{slug}.db"
-
-
 @given(parsers.parse('domain "{code}" is ready for assignment'))
 def given_domain_ready_for_assignment(data_dir, provisioned_tenant, code):
     """Ensure the domain exists in the current version and is marked ready."""
     path = _tenant_db_path(data_dir, provisioned_tenant)
     conn = sqlite3.connect(path)
     try:
-        conn.execute(
-            "UPDATE domains SET status = ? WHERE code = ?",
-            ("ready", code),
-        )
+        version = conn.execute("SELECT id FROM wisp_versions WHERE number = 1").fetchone()
+        if version is None:
+            conn.execute(
+                "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
+                (1, 1, "in_progress"),
+            )
+            version_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        else:
+            version_id = version[0]
+
+        domain = conn.execute("SELECT id FROM domains WHERE code = ?", (code,)).fetchone()
+        if domain is None:
+            conn.execute(
+                "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
+                (code, _domain_name(code), version_id, "ready"),
+            )
+        else:
+            conn.execute(
+                "UPDATE domains SET status = ? WHERE id = ?",
+                ("ready", domain[0]),
+            )
         conn.commit()
     finally:
         conn.close()
@@ -131,7 +140,7 @@ def _assert_notification(data_dir, provisioned_tenant, email, code, role, kind):
     conn = sqlite3.connect(path)
     try:
         user_id = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()[0]
-        domain_name = _DOMAIN_NAMES.get(code, code)
+        domain_name = conn.execute("SELECT name FROM domains WHERE code = ?", (code,)).fetchone()[0]
         row = conn.execute(
             """
             SELECT payload FROM notifications

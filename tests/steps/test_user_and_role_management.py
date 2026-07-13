@@ -7,6 +7,9 @@ from datetime import UTC, datetime, timedelta
 import pyotp
 from pytest_bdd import given, parsers, scenario, then, when
 
+from tests.steps.common_steps import _find_user_id, _roles_list
+from tests.steps.conftest import _tenant_db_path
+
 
 @scenario(
     "../../features/user-and-role-management.feature",
@@ -54,14 +57,6 @@ def test_expired_invitation_link_refused_user05():
 )
 def test_deactivation_flags_domains_keeps_answers_user06():
     pass
-
-
-def _tenant_db_path(data_dir, slug):
-    return data_dir / "tenants" / f"{slug}.db"
-
-
-def _roles_list(roles_str: str) -> list[str]:
-    return [r.strip() for r in roles_str.split(",")]
 
 
 @given(parsers.parse('the admin invites "{email}" with roles "{roles}"'))
@@ -247,19 +242,8 @@ def then_domain_flagged_unassigned(data_dir, context, code):
         assert row[0] == "pending_questions"
         cur = conn.execute(
             "SELECT COUNT(*) FROM domain_assignments WHERE domain_id = ?",
-            (context["deactivate_domain_id"],),
+            (context["assigned_domain_id"],),
         )
         assert cur.fetchone()[0] == 0
-    finally:
-        conn.close()
-
-
-def _find_user_id(data_dir, slug, email):
-    path = _tenant_db_path(data_dir, slug)
-    conn = sqlite3.connect(path)
-    try:
-        row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-        assert row is not None
-        return row[0]
     finally:
         conn.close()
