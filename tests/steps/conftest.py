@@ -7,7 +7,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pytest_bdd import given, parsers
 
+from app.ai.fakes import FakeLLM
 from app.api.routers.auth import router as auth_router
+from app.api.routers.questions import domain_router
+from app.api.routers.questions import router as questions_router
 from app.api.routers.signup import router as signup_router
 from app.api.routers.users import router as users_router
 from app.db.control import init_control_db
@@ -90,7 +93,7 @@ def control_db_path(data_dir):
 
 @pytest.fixture
 def provisioned_tenant(control_db_path, data_dir, tenant_slug):
-    """Create a control-plane tenant record and fully provision its database."""
+    """Create a control-plane tenant record and provision it (schema + 14 empty domains)."""
     import asyncio
 
     from app.db.control import get_control_db
@@ -158,8 +161,9 @@ def _error_response(code: str, message: str, status_code: int):
 
 
 @pytest.fixture
-def app(data_dir, control_db_path):
-    """FastAPI test app with tenant middleware, auth router, and error handlers."""
+def app(data_dir, control_db_path, monkeypatch):
+    """FastAPI test app with tenant middleware, all routers, and error handlers."""
+    from app.crews import seeder_crew
     from app.exceptions import (
         AuthorizationError,
         ConflictError,
@@ -180,6 +184,16 @@ def app(data_dir, control_db_path):
     application.include_router(auth_router, prefix="/auth", tags=["auth"])
     application.include_router(signup_router, prefix="/signup", tags=["signup"])
     application.include_router(users_router, prefix="/users", tags=["users"])
+    application.include_router(questions_router, prefix="/questions", tags=["questions"])
+    application.include_router(domain_router, prefix="/domains", tags=["domains"])
+
+    fake_llm = FakeLLM(
+        default='{"questions": ['
+        '{"text": "A?"}, {"text": "B?"}, {"text": "C?"}, '
+        '{"text": "D?"}, {"text": "E?"}, {"text": "F?"}'
+        "]}"
+    )
+    monkeypatch.setattr(seeder_crew, "create_llm", lambda _provider=None: fake_llm)
 
     @application.exception_handler(ValidationError)
     async def validation_error_handler(request, exc):
