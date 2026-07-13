@@ -14,6 +14,7 @@ async def audit(
     event_type: str,
     subject: str,
     detail: str | None = None,
+    commit: bool = True,
 ) -> None:
     """Persist an audit event in the tenant database.
 
@@ -23,6 +24,8 @@ async def audit(
         event_type: Short event category, e.g. "login_failed" or "domain_approved".
         subject: Entity the event concerns, e.g. an email or domain code.
         detail: Optional human-readable detail. Must never contain answer text or secrets.
+        commit: Whether to commit the transaction after inserting the event.
+            Pass False when the audit event should be part of an outer transaction.
     """
     await db.execute(
         """
@@ -37,4 +40,5 @@ async def audit(
             datetime.now(UTC).isoformat(),
         ),
     )
-    await db.commit()
+    if commit:
+        await db.commit()

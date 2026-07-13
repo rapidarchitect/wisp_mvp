@@ -37,10 +37,11 @@ CREATE INDEX IF NOT EXISTS idx_domain_assignments_reviewer ON domain_assignments
    - Delete the existing assignment row.
    - Insert a new row with the new `contributor_id` and `reviewer_id`.
    - Update the domain status to `assigned` if it is not already.
-   - Send `domain_unassigned` notification to any displaced contributor or reviewer.
-   - Send `domain_assigned` notification to the new contributor and reviewer.
    - Write an audit event of type `domain_assigned` with domain code and both user emails.
    - Commit.
+7. After the transaction commits, send notifications:
+   - Send `domain_unassigned` notification to any displaced contributor or reviewer.
+   - Send `domain_assigned` notification to the new contributor and reviewer.
 7. Return the assignment record: `{domain_id, code, contributor_id, contributor_email, reviewer_id, reviewer_email, assigned_at}`.
 
 ### `get_unassigned_domains(db) -> list[dict]`
