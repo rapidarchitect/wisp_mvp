@@ -103,6 +103,14 @@ async def assign_domain(
         await db.execute("ROLLBACK")
         raise
 
+    await audit(
+        db,
+        actor_user_id=actor_user_id,
+        event_type="domain_assigned",
+        subject=domain["code"],
+        detail=f"contributor={contributor_email}, reviewer={reviewer_email}",
+    )
+
     for user_id, role in displaced:
         if (role == "contributor" and user_id != contributor["id"]) or (
             role == "reviewer" and user_id != reviewer["id"]
@@ -128,14 +136,6 @@ async def assign_domain(
         kind="domain_assigned",
         payload={"role": "reviewer", "domain_name": domain["name"]},
         channel="both",
-    )
-
-    await audit(
-        db,
-        actor_user_id=actor_user_id,
-        event_type="domain_assigned",
-        subject=domain["code"],
-        detail=f"contributor={contributor_email}, reviewer={reviewer_email}",
     )
 
     return {

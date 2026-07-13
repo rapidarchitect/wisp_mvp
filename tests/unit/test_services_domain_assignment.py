@@ -176,9 +176,58 @@ async def test_assign_domain_persists_when_notification_fails(tmp_path, monkeypa
 
     status = (await db.fetchone("SELECT status FROM domains WHERE code = 'AC'"))[0]
     assert status == "assigned"
+    domain_id = (
+        await db.fetchone(
+            "SELECT id FROM domains WHERE code = ?",
+            ("AC",),
+        )
+    )[0]
     assignment = await db.fetchone(
         "SELECT contributor_id, reviewer_id FROM domain_assignments WHERE domain_id = ?",
-        (1,),
+        (domain_id,),
+    )
+    assert assignment["contributor_id"] == contributor_id
+    assert assignment["reviewer_id"] == reviewer_id
+    await db.close()
+
+
+async def test_audit_event_persisted_when_notification_fails(tmp_path, monkeypatch):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    contributor_id = await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    reviewer_id = await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("notification failure")
+
+    monkeypatch.setattr("app.services.domain_assignment.notify", _boom)
+
+    with pytest.raises(RuntimeError, match="notification failure"):
+        await assign_domain(
+            db,
+            actor_user_id=99,
+            code="AC",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+
+    event = await db.fetchone(
+        "SELECT actor_user_id, event_type, subject FROM audit_events ORDER BY id DESC LIMIT 1"
+    )
+    assert event["actor_user_id"] == 99
+    assert event["event_type"] == "domain_assigned"
+    assert event["subject"] == "AC"
+
+    domain_id = (
+        await db.fetchone(
+            "SELECT id FROM domains WHERE code = ?",
+            ("AC",),
+        )
+    )[0]
+    assignment = await db.fetchone(
+        "SELECT contributor_id, reviewer_id FROM domain_assignments WHERE domain_id = ?",
+        (domain_id,),
     )
     assert assignment["contributor_id"] == contributor_id
     assert assignment["reviewer_id"] == reviewer_id
