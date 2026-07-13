@@ -48,11 +48,30 @@ class SESEmailBackend:
             raise ExternalServiceError(f"SES send failed: {exc}") from exc
 
 
+_console_backend: ConsoleEmailBackend | None = None
+_ses_backend: SESEmailBackend | None = None
+
+
 def get_email_backend():
-    """Return the configured email backend."""
+    """Return the configured email backend singleton."""
+    global _console_backend, _ses_backend
     if settings.email_backend == "ses":
-        return SESEmailBackend()
-    return ConsoleEmailBackend()
+        if _ses_backend is None:
+            _ses_backend = SESEmailBackend()
+        return _ses_backend
+    if _console_backend is None:
+        _console_backend = ConsoleEmailBackend()
+    return _console_backend
+
+
+def reset_email_backend() -> None:
+    """Reset the configured email backend singleton.
+
+    Intended for tests and for any runtime switch of email_backend.
+    """
+    global _console_backend, _ses_backend
+    _console_backend = None
+    _ses_backend = None
 
 
 def get_sent_messages() -> list[dict]:
