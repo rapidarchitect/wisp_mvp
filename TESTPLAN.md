@@ -121,6 +121,7 @@ Rules: every scenario has exactly one owning SPEC task; Tasks 01, 02, 08, 11, 19
 | Cross-cutting: EBS encryption at rest | NOT automated — verified by `terraform plan` review in Task 19 | YES (manual) |
 | Cross-cutting: LLM provider switching | Task 08 unit tests (factory selection by env) | no |
 | Cross-cutting: no tenant data in logs (C-18) | log-capture unit tests on notify/audit/error paths, Task 03 + 13 | no |
+| Cross-cutting: notification service (Task 11) | `tests/unit/test_services_notifications.py` (98% coverage); exercised by every "should be notified" Then step in USER/ASSN/QSTN/REVW scenarios | no |
 
 The single YES is deliberate: infrastructure encryption is a Terraform property, verified at plan review, not by the app test suite. Carried in the Architect Review Summary.
 
