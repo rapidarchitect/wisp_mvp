@@ -147,3 +147,59 @@ async def assign_domain(
         "reviewer_email": reviewer["email"],
         "assigned_at": assigned_at,
     }
+
+
+async def get_unassigned_domains(db: TenantDB) -> list[dict]:
+    """Return domains in the current version that are missing an assignment or a role."""
+    version_id = await _current_version_id(db)
+    rows = await db.fetchall(
+        """
+        SELECT d.id, d.code, d.name, d.status,
+               a.contributor_id, a.reviewer_id
+        FROM domains d
+        LEFT JOIN domain_assignments a ON a.domain_id = d.id
+        WHERE d.wisp_version_id = ?
+          AND (
+              a.domain_id IS NULL
+              OR a.contributor_id IS NULL
+              OR a.reviewer_id IS NULL
+          )
+        ORDER BY d.code
+        """,
+        (version_id,),
+    )
+    result = []
+    for row in rows:
+        missing = []
+        if row["contributor_id"] is None:
+            missing.append("contributor")
+        if row["reviewer_id"] is None:
+            missing.append("reviewer")
+        result.append(
+            {
+                "id": row["id"],
+                "code": row["code"],
+                "name": row["name"],
+                "status": row["status"],
+                "missing_roles": missing,
+            }
+        )
+    return result
+
+
+async def list_user_assignments(db: TenantDB, *, user_id: int) -> list[dict]:
+    """Return all domains assigned to a user in the current version with role."""
+    version_id = await _current_version_id(db)
+    rows = await db.fetchall(
+        """
+        SELECT d.id, d.code, d.name, d.status,
+               CASE WHEN a.contributor_id = ? THEN 'contributor' ELSE 'reviewer' END AS role
+        FROM domain_assignments a
+        JOIN domains d ON d.id = a.domain_id
+        WHERE d.wisp_version_id = ?
+          AND (a.contributor_id = ? OR a.reviewer_id = ?)
+        ORDER BY d.code
+        """,
+        (user_id, version_id, user_id, user_id),
+    )
+    return [dict(row) for row in rows]

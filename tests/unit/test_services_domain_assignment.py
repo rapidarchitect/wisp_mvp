@@ -9,7 +9,11 @@ from app.exceptions import (  # noqa: F401
     NotFoundError,
     ValidationError,
 )
-from app.services.domain_assignment import assign_domain
+from app.services.domain_assignment import (
+    assign_domain,
+    get_unassigned_domains,
+    list_user_assignments,
+)
 
 
 async def _seed_version(db):
@@ -356,4 +360,53 @@ async def test_assign_domain_preserves_answers_and_compiled_text(tmp_path):
     compiled = await db.fetchone("SELECT narrative_text FROM compiled_answers WHERE domain_id = ?", ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0],))
     assert answer["contributor_id"] == old_contributor
     assert compiled["narrative_text"] == "compiled"
+    await db.close()
+
+
+async def test_get_unassigned_domains_flags_missing_roles(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id, code="AC", status="ready")
+    await _seed_domain(db, version_id, code="PE", status="ready")
+    contributor = await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    reviewer = await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    # Fully assign AC, leave PE unassigned.
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c@acme.app.wisp.llc",
+        reviewer_email="r@acme.app.wisp.llc",
+    )
+
+    unassigned = await get_unassigned_domains(db)
+    codes = {u["code"] for u in unassigned}
+    assert codes == {"PE"}
+    assert unassigned[0]["missing_roles"] == ["contributor", "reviewer"]
+    await db.close()
+
+
+async def test_list_user_assignments(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id, code="AC")
+    await _seed_domain(db, version_id, code="PE")
+    contributor = await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    reviewer = await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c@acme.app.wisp.llc",
+        reviewer_email="r@acme.app.wisp.llc",
+    )
+
+    contributor_assignments = await list_user_assignments(db, user_id=contributor)
+    assert [a["code"] for a in contributor_assignments] == ["AC"]
+    assert contributor_assignments[0]["role"] == "contributor"
+
+    reviewer_assignments = await list_user_assignments(db, user_id=reviewer)
+    assert reviewer_assignments[0]["role"] == "reviewer"
     await db.close()
