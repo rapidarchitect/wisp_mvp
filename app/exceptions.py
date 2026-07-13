@@ -8,6 +8,10 @@ class WispgenError(Exception):
 class ValidationError(WispgenError):
     """Input validation or business rule violation."""
 
+    def __init__(self, message: str, code: str = "validation_error") -> None:
+        super().__init__(message)
+        self.code = code
+
 
 class NotFoundError(WispgenError):
     """Requested entity was not found."""
@@ -23,6 +27,10 @@ class AuthorizationError(WispgenError):
 
 class ConflictError(WispgenError):
     """Entity is in a conflicting state for the requested operation."""
+
+    def __init__(self, message: str, code: str = "conflict") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class ExternalServiceError(WispgenError):

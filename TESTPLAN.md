@@ -54,11 +54,11 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 
 | Scenario ID | Scenario | Feature file | Level | Steps module | SPEC Task | Status |
 |---|---|---|---|---|---|---|
-| SIGN-01 | Card signup provisions workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-02 | Voucher skips card payment | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-04 | Workspace address must be unique | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
+| SIGN-01 | Card signup provisions workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-02 | Voucher skips card payment | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-04 | Workspace address must be unique | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
 | AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | green |
 | AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | green |
 | AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | green |

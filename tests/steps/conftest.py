@@ -8,9 +8,11 @@ from fastapi.testclient import TestClient
 from pytest_bdd import given, parsers
 
 from app.api.routers.auth import router as auth_router
+from app.api.routers.signup import router as signup_router
 from app.db.control import init_control_db
 from app.db.tenant import init_tenant_db
 from app.middleware.tenancy import TenantMiddleware
+from app.services.payment import FakeStripeClient
 
 
 @pytest.fixture
@@ -88,7 +90,7 @@ def _error_response(code: str, message: str, status_code: int):
 
 
 @pytest.fixture
-def app(data_dir):
+def app(data_dir, control_db_path):
     """FastAPI test app with tenant middleware, auth router, and error handlers."""
     from app.exceptions import (
         AuthorizationError,
@@ -99,16 +101,20 @@ def app(data_dir):
     )
 
     application = FastAPI()
+    application.state.control_db_path = data_dir / "control.db"
+    application.state.data_dir = data_dir
+    application.state.stripe_client = FakeStripeClient("succeed")
     application.add_middleware(
         TenantMiddleware,
         control_db_path=data_dir / "control.db",
         data_dir=data_dir,
     )
     application.include_router(auth_router, prefix="/auth", tags=["auth"])
+    application.include_router(signup_router, prefix="/signup", tags=["signup"])
 
     @application.exception_handler(ValidationError)
     async def validation_error_handler(request, exc):
-        return _error_response("validation_error", str(exc), 422)
+        return _error_response(getattr(exc, "code", "validation_error"), str(exc), 422)
 
     @application.exception_handler(NotFoundError)
     async def not_found_error_handler(request, exc):
@@ -120,7 +126,7 @@ def app(data_dir):
 
     @application.exception_handler(ConflictError)
     async def conflict_error_handler(request, exc):
-        return _error_response("conflict", str(exc), 409)
+        return _error_response(getattr(exc, "code", "conflict"), str(exc), 409)
 
     @application.exception_handler(WispgenError)
     async def wispgen_error_handler(request, exc):

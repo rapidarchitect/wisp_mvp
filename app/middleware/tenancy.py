@@ -32,6 +32,14 @@ class TenantMiddleware(BaseHTTPMiddleware):
             request.state.tenant_db = None
             return await call_next(request)
 
+        # Signup routes target the to-be-created workspace subdomain and must
+        # not require an existing tenant record.
+        if request.url.path.startswith("/signup"):
+            request.state.tenant = None
+            request.state.tenant_slug = slug
+            request.state.tenant_db = None
+            return await call_next(request)
+
         try:
             tenant = await get_tenant_by_slug(self.control_db_path, slug)
         except NotFoundError:
