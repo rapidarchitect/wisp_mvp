@@ -62,3 +62,56 @@ async def test_assign_domain_success(tmp_path):
     status = (await db.fetchone("SELECT status FROM domains WHERE code = 'AC'"))[0]
     assert status == "assigned"
     await db.close()
+
+
+async def test_assign_domain_notifies_new_users(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c@acme.app.wisp.llc",
+        reviewer_email="r@acme.app.wisp.llc",
+    )
+
+    rows = await db.fetchall("SELECT type, user_id FROM notifications ORDER BY id")
+    types = [r["type"] for r in rows]
+    assert "domain_assigned" in types
+    assert len(rows) == 2
+    await db.close()
+
+
+async def test_assign_domain_replacement_notifies_displaced_users(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    await _seed_user(db, "c1@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r1@acme.app.wisp.llc", ["reviewer"])
+    await _seed_user(db, "c2@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r2@acme.app.wisp.llc", ["reviewer"])
+
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c1@acme.app.wisp.llc",
+        reviewer_email="r1@acme.app.wisp.llc",
+    )
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c2@acme.app.wisp.llc",
+        reviewer_email="r2@acme.app.wisp.llc",
+    )
+
+    rows = await db.fetchall("SELECT type, user_id FROM notifications ORDER BY id")
+    types = [r["type"] for r in rows]
+    assert types.count("domain_unassigned") == 2
+    assert types.count("domain_assigned") == 4
+    await db.close()
