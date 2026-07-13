@@ -64,53 +64,6 @@ def _roles_list(roles_str: str) -> list[str]:
     return [r.strip() for r in roles_str.split(",")]
 
 
-@given(parsers.parse('an enrolled admin "{email}" with password "{password}"'))
-def given_enrolled_admin(provisioned_tenant, data_dir, email, password, context):
-    """Create an admin user with TOTP enrolled and store credentials."""
-    from app.services.auth import hash_password
-    from app.services.totp import generate_totp_secret
-
-    secret = generate_totp_secret()
-    path = _tenant_db_path(data_dir, provisioned_tenant)
-    conn = sqlite3.connect(path)
-    try:
-        conn.execute(
-            """
-            INSERT INTO users
-                (email, password_hash, roles, status, totp_secret, totp_enrolled, failed_attempts)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                email,
-                hash_password(password),
-                json.dumps(["admin"]),
-                "active",
-                secret,
-                1,
-                0,
-            ),
-        )
-        conn.commit()
-        user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    finally:
-        conn.close()
-    context["admin"] = {"id": user_id, "email": email, "password": password, "totp_secret": secret}
-
-
-@given(parsers.parse('"{email}" is signed in'))
-def given_user_signed_in(client, context, email):
-    """Log in the named user and store the session token."""
-    user = next((u for u in [context.get("admin")] if u and u["email"] == email), None)
-    assert user is not None, f"No credentials for {email}"
-    totp = pyotp.TOTP(user["totp_secret"])
-    response = client.post(
-        "/auth/login",
-        json={"email": email, "password": user["password"], "totp_code": totp.now()},
-    )
-    assert response.status_code == 200
-    context["session_token"] = response.json()["token"]
-
-
 @given(parsers.parse('the admin invites "{email}" with roles "{roles}"'))
 @when(parsers.parse('the admin invites "{email}" with roles "{roles}"'))
 def admin_invites(client, context, email, roles):
@@ -326,16 +279,29 @@ def given_domain_assigned(
         reviewer_id = conn.execute(
             "SELECT id FROM users WHERE email = ?", (reviewer_email,)
         ).fetchone()[0]
-        conn.execute(
-            "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
-            (1, 1, "in_progress"),
-        )
-        version_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        conn.execute(
-            "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
-            (code, "Access Control", version_id, "assigned"),
-        )
-        domain_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        version = conn.execute("SELECT id FROM wisp_versions WHERE number = 1").fetchone()
+        if version is None:
+            conn.execute(
+                "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
+                (1, 1, "in_progress"),
+            )
+            version_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        else:
+            version_id = version[0]
+
+        domain = conn.execute("SELECT id FROM domains WHERE code = ?", (code,)).fetchone()
+        if domain is None:
+            conn.execute(
+                "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
+                (code, "Access Control", version_id, "assigned"),
+            )
+            domain_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        else:
+            domain_id = domain[0]
+            conn.execute(
+                "UPDATE domains SET status = ? WHERE id = ?",
+                ("assigned", domain_id),
+            )
         conn.execute(
             """
             INSERT INTO domain_assignments (domain_id, contributor_id, reviewer_id)

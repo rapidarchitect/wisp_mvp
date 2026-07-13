@@ -72,9 +72,9 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | USER-04 | Duplicate invitation rejected | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
 | USER-05 | Expired invitation link refused | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
 | USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
-| SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
-| SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
-| SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
+| SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
+| SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
+| SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
 | SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
 | SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
 | SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |

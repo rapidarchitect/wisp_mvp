@@ -117,16 +117,26 @@ def given_saved_answer(provisioned_tenant, data_dir, enrolled_user, text):
     path = _tenant_db_path(data_dir, provisioned_tenant)
     conn = sqlite3.connect(path)
     try:
-        cur = conn.execute(
-            "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
-            (1, 1, "in_progress"),
-        )
-        version_id = cur.lastrowid
-        cur = conn.execute(
-            "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
-            ("AC", "Access Control", version_id, "in_progress"),
-        )
-        domain_id = cur.lastrowid
+        version = conn.execute("SELECT id FROM wisp_versions WHERE number = 1").fetchone()
+        if version is None:
+            cur = conn.execute(
+                "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
+                (1, 1, "in_progress"),
+            )
+            version_id = cur.lastrowid
+        else:
+            version_id = version[0]
+
+        domain = conn.execute("SELECT id FROM domains WHERE code = ?", ("AC",)).fetchone()
+        if domain is None:
+            cur = conn.execute(
+                "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
+                ("AC", "Access Control", version_id, "in_progress"),
+            )
+            domain_id = cur.lastrowid
+        else:
+            domain_id = domain[0]
+
         cur = conn.execute(
             "INSERT INTO questions (domain_id, text, position) VALUES (?, ?, ?)",
             (domain_id, "Is access controlled?", 1),

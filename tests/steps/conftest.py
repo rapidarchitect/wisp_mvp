@@ -11,7 +11,6 @@ from app.api.routers.auth import router as auth_router
 from app.api.routers.signup import router as signup_router
 from app.api.routers.users import router as users_router
 from app.db.control import init_control_db
-from app.db.tenant import init_tenant_db
 from app.middleware.tenancy import TenantMiddleware
 from app.services.payment import FakeStripeClient
 
@@ -28,6 +27,57 @@ def given_provisioned_tenant(slug):
     return slug
 
 
+@given(parsers.parse('an enrolled admin "{email}" with password "{password}"'))
+def given_enrolled_admin(provisioned_tenant, data_dir, email, password, context):
+    """Create an admin user with TOTP enrolled and store credentials."""
+    import json
+
+    from app.services.auth import hash_password
+    from app.services.totp import generate_totp_secret
+
+    secret = generate_totp_secret()
+    path = data_dir / "tenants" / f"{provisioned_tenant}.db"
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO users
+                (email, password_hash, roles, status, totp_secret, totp_enrolled, failed_attempts)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                email,
+                hash_password(password),
+                json.dumps(["admin"]),
+                "active",
+                secret,
+                1,
+                0,
+            ),
+        )
+        conn.commit()
+        user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    finally:
+        conn.close()
+    context["admin"] = {"id": user_id, "email": email, "password": password, "totp_secret": secret}
+
+
+@given(parsers.parse('"{email}" is signed in'))
+def given_user_signed_in(client, context, email):
+    """Log in the named user and store the session token."""
+    import pyotp
+
+    user = next((u for u in [context.get("admin")] if u and u["email"] == email), None)
+    assert user is not None, f"No credentials for {email}"
+    totp = pyotp.TOTP(user["totp_secret"])
+    response = client.post(
+        "/auth/login",
+        json={"email": email, "password": user["password"], "totp_code": totp.now()},
+    )
+    assert response.status_code == 200
+    context["session_token"] = response.json()["token"]
+
+
 @pytest.fixture
 def control_db_path(data_dir):
     """Path to a freshly initialized control-plane database."""
@@ -40,8 +90,11 @@ def control_db_path(data_dir):
 
 @pytest.fixture
 def provisioned_tenant(control_db_path, data_dir, tenant_slug):
-    """Create a control-plane tenant record and initialize its SQLite file."""
+    """Create a control-plane tenant record and fully provision its database."""
     import asyncio
+
+    from app.db.control import get_control_db
+    from app.services.provisioning import provision_tenant
 
     conn = sqlite3.connect(control_db_path)
     try:
@@ -50,9 +103,23 @@ def provisioned_tenant(control_db_path, data_dir, tenant_slug):
             (tenant_slug, "Palmetto Tax", "active"),
         )
         conn.commit()
+        tenant_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     finally:
         conn.close()
-    asyncio.run(init_tenant_db(data_dir, tenant_slug))
+
+    async def _provision():
+        control_db = await get_control_db(control_db_path)
+        try:
+            await provision_tenant(
+                control_db,
+                tenant_id=tenant_id,
+                slug=tenant_slug,
+                data_dir=data_dir,
+            )
+        finally:
+            await control_db.close()
+
+    asyncio.run(_provision())
     return tenant_slug
 
 
