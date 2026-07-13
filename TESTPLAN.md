@@ -75,9 +75,9 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
 | SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
 | SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
-| SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
-| SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
-| SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
+| SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
+| SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
+| SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
 | ASSN-01 | Assign contributor and reviewer | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
 | ASSN-02 | One contributor, one reviewer at a time | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
 | ASSN-03 | Reassignment preserves work | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
