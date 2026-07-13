@@ -232,3 +232,128 @@ async def test_audit_event_persisted_when_notification_fails(tmp_path, monkeypat
     assert assignment["contributor_id"] == contributor_id
     assert assignment["reviewer_id"] == reviewer_id
     await db.close()
+
+
+async def test_assign_domain_unknown_domain(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    await _seed_version(db)
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    with pytest.raises(NotFoundError):
+        await assign_domain(
+            db,
+            actor_user_id=1,
+            code="XX",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+    await db.close()
+
+
+async def test_assign_domain_inactive_user(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"], status="deactivated")
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    with pytest.raises(ValidationError) as exc:
+        await assign_domain(
+            db,
+            actor_user_id=1,
+            code="AC",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+    assert exc.value.code == "user_inactive"
+    await db.close()
+
+
+async def test_assign_domain_missing_role(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id)
+    await _seed_user(db, "c@acme.app.wisp.llc", ["reviewer"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    with pytest.raises(ValidationError) as exc:
+        await assign_domain(
+            db,
+            actor_user_id=1,
+            code="AC",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+    assert exc.value.code == "missing_role"
+    await db.close()
+
+
+async def test_assign_domain_blocks_reassignment_in_review(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id, status="in_review")
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+
+    with pytest.raises(ConflictError) as exc:
+        await assign_domain(
+            db,
+            actor_user_id=1,
+            code="AC",
+            contributor_email="c@acme.app.wisp.llc",
+            reviewer_email="r@acme.app.wisp.llc",
+        )
+    assert exc.value.code == "domain_not_reassignable"
+    await db.close()
+
+
+async def test_assign_domain_preserves_answers_and_compiled_text(tmp_path):
+    db = await init_tenant_db(tmp_path, "acme")
+    version_id = await _seed_version(db)
+    await _seed_domain(db, version_id, status="assigned")
+    old_contributor = await _seed_user(db, "c1@acme.app.wisp.llc", ["contributor"])
+    old_reviewer = await _seed_user(db, "r1@acme.app.wisp.llc", ["reviewer"])
+    new_contributor = await _seed_user(db, "c2@acme.app.wisp.llc", ["contributor"])
+    new_reviewer = await _seed_user(db, "r2@acme.app.wisp.llc", ["reviewer"])
+
+    await db.execute(
+        """
+        INSERT INTO domain_assignments (domain_id, contributor_id, reviewer_id)
+        VALUES (?, ?, ?)
+        """,
+        (
+            (await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0],
+            old_contributor,
+            old_reviewer,
+        ),
+    )
+    await db.execute(
+        "INSERT INTO questions (domain_id, text, answer_type, origin, enabled, position) VALUES (?, ?, ?, ?, ?, ?)",
+        ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0], "Q", "yes_no", "seeded", 1, 0),
+    )
+    await db.commit()
+    question_id = (await db.fetchone("SELECT id FROM questions WHERE text = 'Q'"))[0]
+    await db.execute(
+        "INSERT INTO answers (question_id, contributor_id, value, skipped, followups_state) VALUES (?, ?, ?, ?, ?)",
+        (question_id, old_contributor, "yes", 0, "complete"),
+    )
+    await db.execute(
+        "INSERT INTO compiled_answers (domain_id, narrative_text) VALUES (?, ?)",
+        ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0], "compiled"),
+    )
+    await db.commit()
+
+    await assign_domain(
+        db,
+        actor_user_id=1,
+        code="AC",
+        contributor_email="c2@acme.app.wisp.llc",
+        reviewer_email="r2@acme.app.wisp.llc",
+    )
+
+    answer = await db.fetchone("SELECT contributor_id FROM answers WHERE question_id = ?", (question_id,))
+    compiled = await db.fetchone("SELECT narrative_text FROM compiled_answers WHERE domain_id = ?", ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0],))
+    assert answer["contributor_id"] == old_contributor
+    assert compiled["narrative_text"] == "compiled"
+    await db.close()
