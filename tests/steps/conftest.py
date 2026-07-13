@@ -251,6 +251,3 @@ def _clear_captured_emails():
 
 def _tenant_db_path(data_dir: Path, slug: str) -> Path:
     return data_dir / "tenants" / f"{slug}.db"
-
-
-pytest_plugins = ["tests.steps.common_steps"]
