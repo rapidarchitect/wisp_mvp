@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.routers.auth import router as auth_router
 from app.api.routers.signup import router as signup_router
+from app.api.routers.users import router as users_router
 from app.config import settings
 from app.exceptions import (
     AuthorizationError,
@@ -22,6 +23,7 @@ app.state.data_dir = settings.data_dir
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(signup_router, prefix="/signup", tags=["signup"])
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.
 app.add_middleware(

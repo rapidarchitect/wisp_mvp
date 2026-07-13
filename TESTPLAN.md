@@ -66,12 +66,12 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | green |
 | AUTH-07 | Password reset via 30-min link | authentication | integration | test_authentication | Task 05 | green |
-| USER-01 | Invite user with two roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-02 | Invited user activates account | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-03 | One user holds all three roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-04 | Duplicate invitation rejected | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-05 | Expired invitation link refused | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
+| USER-01 | Invite user with two roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-02 | Invited user activates account | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-03 | One user holds all three roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-04 | Duplicate invitation rejected | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-05 | Expired invitation link refused | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
 | SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
 | SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
 | SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |

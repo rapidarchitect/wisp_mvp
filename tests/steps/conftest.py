@@ -9,6 +9,7 @@ from pytest_bdd import given, parsers
 
 from app.api.routers.auth import router as auth_router
 from app.api.routers.signup import router as signup_router
+from app.api.routers.users import router as users_router
 from app.db.control import init_control_db
 from app.db.tenant import init_tenant_db
 from app.middleware.tenancy import TenantMiddleware
@@ -111,6 +112,7 @@ def app(data_dir, control_db_path):
     )
     application.include_router(auth_router, prefix="/auth", tags=["auth"])
     application.include_router(signup_router, prefix="/signup", tags=["signup"])
+    application.include_router(users_router, prefix="/users", tags=["users"])
 
     @application.exception_handler(ValidationError)
     async def validation_error_handler(request, exc):

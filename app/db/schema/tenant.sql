@@ -34,8 +34,10 @@ CREATE TABLE IF NOT EXISTS invitations (
     email TEXT NOT NULL,
     roles TEXT NOT NULL DEFAULT '[]',
     token TEXT NOT NULL UNIQUE,
+    invited_by INTEGER,
     expires_at TEXT NOT NULL,
-    accepted_at TEXT
+    accepted_at TEXT,
+    FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessions (

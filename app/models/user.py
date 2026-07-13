@@ -1,13 +1,12 @@
-"""Pydantic models for user entities."""
+"""Pydantic models for user management."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 
 
-class User(BaseModel):
-    """A user within a tenant workspace."""
+class UserResponse(BaseModel):
+    """User summary returned by list endpoints."""
 
     id: int
     email: EmailStr
-    roles: set[str] = Field(default_factory=set)
+    roles: list[str]
     status: str
-    totp_enrolled: bool = False
