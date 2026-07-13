@@ -58,25 +58,33 @@ async def add_question(
     if not cleaned:
         raise ValidationError("Question text is required", code="empty_text")
 
-    enabled = await _count_enabled_questions(db, domain_id)
-    if enabled >= 10:
-        raise ValidationError("Domain already has 10 enabled questions", code="too_many_questions")
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        enabled = await _count_enabled_questions(db, domain_id)
+        if enabled >= 10:
+            raise ValidationError(
+                "Domain already has 10 enabled questions", code="too_many_questions"
+            )
 
-    if position is None:
-        row = await db.fetchone(
-            "SELECT COALESCE(MAX(position), 0) FROM questions WHERE domain_id = ?",
-            (domain_id,),
+        if position is None:
+            row = await db.fetchone(
+                "SELECT COALESCE(MAX(position), 0) FROM questions WHERE domain_id = ?",
+                (domain_id,),
+            )
+            position = row[0] + 1
+
+        cursor = await db.execute(
+            """
+            INSERT INTO questions (domain_id, text, answer_type, origin, enabled, position)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (domain_id, cleaned, "yes_no", "admin", 1, position),
         )
-        position = row[0] + 1
+        await db.commit()
+    except Exception:
+        await db.execute("ROLLBACK")
+        raise
 
-    cursor = await db.execute(
-        """
-        INSERT INTO questions (domain_id, text, answer_type, origin, enabled, position)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (domain_id, cleaned, "yes_no", "admin", 1, position),
-    )
-    await db.commit()
     return {
         "question_id": cursor.lastrowid,
         "domain_id": domain_id,
@@ -116,18 +124,25 @@ async def disable_question(
 ) -> dict:
     """Hide a question from contributors."""
     question = await _get_question(db, question_id)
-    enabled = await _count_enabled_questions(db, question["domain_id"])
-    if enabled <= 5:
-        raise ValidationError(
-            "Cannot disable: domain would have fewer than 5 enabled questions",
-            code="minimum_questions",
-        )
 
-    await db.execute(
-        "UPDATE questions SET enabled = 0 WHERE id = ?",
-        (question_id,),
-    )
-    await db.commit()
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        enabled = await _count_enabled_questions(db, question["domain_id"])
+        if enabled <= 5:
+            raise ValidationError(
+                "Cannot disable: domain would have fewer than 5 enabled questions",
+                code="minimum_questions",
+            )
+
+        await db.execute(
+            "UPDATE questions SET enabled = 0 WHERE id = ?",
+            (question_id,),
+        )
+        await db.commit()
+    except Exception:
+        await db.execute("ROLLBACK")
+        raise
+
     return {
         "question_id": question_id,
         "domain_id": question["domain_id"],
@@ -142,18 +157,25 @@ async def reinstate_question(
 ) -> dict:
     """Make a previously disabled question visible again."""
     question = await _get_question(db, question_id)
-    enabled = await _count_enabled_questions(db, question["domain_id"])
-    if enabled >= 10:
-        raise ValidationError(
-            "Cannot reinstate: domain already has 10 enabled questions",
-            code="too_many_questions",
-        )
 
-    await db.execute(
-        "UPDATE questions SET enabled = 1 WHERE id = ?",
-        (question_id,),
-    )
-    await db.commit()
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        enabled = await _count_enabled_questions(db, question["domain_id"])
+        if enabled >= 10:
+            raise ValidationError(
+                "Cannot reinstate: domain already has 10 enabled questions",
+                code="too_many_questions",
+            )
+
+        await db.execute(
+            "UPDATE questions SET enabled = 1 WHERE id = ?",
+            (question_id,),
+        )
+        await db.commit()
+    except Exception:
+        await db.execute("ROLLBACK")
+        raise
+
     return {
         "question_id": question_id,
         "domain_id": question["domain_id"],
@@ -171,7 +193,7 @@ async def regenerate_domain_questions(
 
     Allowed only when the domain has zero answers (C-16). Admin-added custom
     questions are preserved. If the LLM fails, the domain is marked
-    pending_questions per C-19.
+    pending_questions per C-19 and the previous seeded questions remain.
     """
     domain = await _get_domain(db, domain_id)
     if await _domain_has_answers(db, domain_id):
@@ -179,11 +201,11 @@ async def regenerate_domain_questions(
             "Domain has answers; regeneration is not allowed", code="domain_has_answers"
         )
 
-    await db.execute(
-        "DELETE FROM questions WHERE domain_id = ? AND origin = 'seeded'",
+    rows = await db.fetchall(
+        "SELECT id FROM questions WHERE domain_id = ? AND origin = 'seeded'",
         (domain_id,),
     )
-    await db.commit()
+    old_seeded_ids = [row["id"] for row in rows]
 
     crew = SeederCrew(
         db,
@@ -192,4 +214,13 @@ async def regenerate_domain_questions(
         domain_name=domain["name"],
         llm=llm,
     )
-    return await crew.seed_domain()
+    result = await crew.seed_domain()
+
+    if result["status"] == "ready" and old_seeded_ids:
+        await db.execute(
+            f"DELETE FROM questions WHERE id IN ({','.join('?' * len(old_seeded_ids))})",
+            tuple(old_seeded_ids),
+        )
+        await db.commit()
+
+    return result
