@@ -54,30 +54,30 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 
 | Scenario ID | Scenario | Feature file | Level | Steps module | SPEC Task | Status |
 |---|---|---|---|---|---|---|
-| SIGN-01 | Card signup provisions workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-02 | Voucher skips card payment | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-04 | Workspace address must be unique | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | planned |
-| AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | planned |
-| AUTH-04 | Wrong TOTP counts toward lockout | authentication | integration | test_authentication | Task 04 | planned |
-| AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | planned |
-| AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | planned |
-| AUTH-07 | Password reset via 30-min link | authentication | integration | test_authentication | Task 05 | planned |
-| USER-01 | Invite user with two roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-02 | Invited user activates account | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-03 | One user holds all three roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-04 | Duplicate invitation rejected | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-05 | Expired invitation link refused | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | integration | test_user_and_role_management | Task 07 | planned |
-| SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
-| SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
-| SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | planned |
-| SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
-| SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
-| SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | planned |
+| SIGN-01 | Card signup provisions workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-02 | Voucher skips card payment | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-04 | Workspace address must be unique | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | integration | test_signup_and_onboarding | Task 06 | green |
+| AUTH-01 | First login requires TOTP enrollment | authentication | integration | test_authentication | Task 04 | green |
+| AUTH-02 | Login with password and TOTP | authentication | integration | test_authentication | Task 04 | green |
+| AUTH-03 | Wrong password rejected | authentication | integration | test_authentication | Task 03 | green |
+| AUTH-04 | Wrong TOTP counts toward lockout | authentication | integration | test_authentication | Task 04 | green |
+| AUTH-05 | Lock after 5 failed attempts | authentication | integration | test_authentication | Task 03 | green |
+| AUTH-06 | Expired session preserves saved work | authentication | integration | test_authentication | Task 03 | green |
+| AUTH-07 | Password reset via 30-min link | authentication | integration | test_authentication | Task 05 | green |
+| USER-01 | Invite user with two roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-02 | Invited user activates account | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-03 | One user holds all three roles | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-04 | Duplicate invitation rejected | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-05 | Expired invitation link refused | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | integration | test_user_and_role_management | Task 07 | green |
+| SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
+| SEED-02 | Demo company after deployment | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
+| SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 09 | green |
+| SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
+| SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
+| SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
 | ASSN-01 | Assign contributor and reviewer | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
 | ASSN-02 | One contributor, one reviewer at a time | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
 | ASSN-03 | Reassignment preserves work | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
@@ -121,6 +121,7 @@ Rules: every scenario has exactly one owning SPEC task; Tasks 01, 02, 08, 11, 19
 | Cross-cutting: EBS encryption at rest | NOT automated — verified by `terraform plan` review in Task 19 | YES (manual) |
 | Cross-cutting: LLM provider switching | Task 08 unit tests (factory selection by env) | no |
 | Cross-cutting: no tenant data in logs (C-18) | log-capture unit tests on notify/audit/error paths, Task 03 + 13 | no |
+| Cross-cutting: notification service (Task 11) | `tests/unit/test_services_notifications.py` (98% coverage); exercised by every "should be notified" Then step in USER/ASSN/QSTN/REVW scenarios | no |
 
 The single YES is deliberate: infrastructure encryption is a Terraform property, verified at plan review, not by the app test suite. Carried in the Architect Review Summary.
 
