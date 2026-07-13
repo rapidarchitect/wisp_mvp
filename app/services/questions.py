@@ -176,8 +176,7 @@ async def regenerate_domain_questions(
     domain = await _get_domain(db, domain_id)
     if await _domain_has_answers(db, domain_id):
         raise ConflictError(
-            "Domain has answers; regeneration is not allowed",
-            code="domain_has_answers",
+            "Domain has answers; regeneration is not allowed", code="domain_has_answers"
         )
 
     await db.execute(
