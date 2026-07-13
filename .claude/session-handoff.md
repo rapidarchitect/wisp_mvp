@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
-**Date:** 2026-07-13 04:30 UTC  
-**Branch:** `task-09-domain-seeding`  
-**Last completed task:** Task 09 (domain seeding crew and demo tenant)
+**Date:** 2026-07-13 09:15 UTC  
+**Branch:** `task-10-questions-service`  
+**Last completed task:** Task 10 (Question Management)
 
 ## Completed tasks
 
@@ -16,48 +16,48 @@
 | Task 06 | `task-06-signup-provisioning` | committed | Signup, corporate vitals, voucher/card payment, tenant provisioning, 14 domains (C-01, C-17, SIGN-01..SIGN-05) |
 | Task 07 | `task-07-user-role-management` | committed | 7-day invitations, activation with password + TOTP, multi-role grants, duplicate/expired invite rejection, deactivation unassigns domains while preserving answers (C-09, C-10, C-11, USER-01..USER-06) |
 | Task 08 | `task-08-llm-factory` | committed | Configurable LLM factory, crew retry base with exponential backoff, Tavily tool wrapper, deterministic fake doubles (C-19) |
-| Task 09 | `task-09-domain-seeding` | committed (current branch) | SeederCrew generates 5-10 yes-no questions per domain, `seed-demo` CLI provisions and seeds demo tenant, LLM outage marks domains `pending_questions` gracefully (C-08, C-19, SEED-01..SEED-03) |
+| Task 09 | `task-09-domain-seeding` | committed | SeederCrew generates 5-10 yes-no questions per domain, `seed-demo` CLI provisions and seeds demo tenant, LLM outage marks domains `pending_questions` gracefully (C-08, C-19, SEED-01..SEED-03) |
+| Task 10 | `task-10-questions-service` | committed (current branch) | Admin question add/edit/disable/reinstate, per-domain regeneration guarded by zero answers, shared auth dependencies, atomic validation (C-08, C-16, SEED-04..SEED-06) |
 
 ## Current verification
 
 - `uv run pytest tests/ -q` → **all green**
 - `uv run pytest tests/steps -q` → **all green**
-- `uv run pytest tests/steps/test_domain_seeding_and_questions.py -q` → **3 passed**
+- `uv run pytest tests/steps/test_domain_seeding_and_questions.py -q -k "seed04 or seed05 or seed06"` → **3 passed**
+- `uv run pytest tests/unit/test_questions_service.py -q` → **9 passed**
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
-- `TESTPLAN.md` statuses updated to **green** for SIGN-01..05, AUTH-01..07, USER-01..06, and SEED-01..03.
+- `uv run pytest --cov=app/services --cov-report=term-missing tests/unit/test_questions_service.py` → **93%+ coverage**
+- `TESTPLAN.md` statuses updated to **green** for SIGN-01..05, AUTH-01..07, USER-01..06, SEED-01..06.
 
 ## Active files of note
 
-- `app/crews/seeder_crew.py` — `SeederCrew.seed_domain()` generates JSON questions via LLM, validates 5-10 count, and falls back to `pending_questions` on failure.
-- `app/services/seeding.py` — `seed_all_domains()` and `retry_domain_seed()` orchestration.
-- `app/services/domain.py` — `get_domains_for_version()`, `get_questions_for_domain()`.
-- `app/cli.py` — async `seed_demo()` command creates/provisions the `demo` tenant and seeds all 14 domains.
-- `features/domain-seeding-and-questions.feature` — SEED-01..SEED-03 scenarios.
-- `tests/steps/test_domain_seeding_and_questions.py` — step definitions for seeding, demo, and outage scenarios.
-- `tests/steps/conftest.py` — shared `provisioned_tenant` fixture now fully provisions version 1 and 14 domains; shared admin/sign-in steps live here.
+- `app/services/questions.py` — `add_question`, `edit_question`, `disable_question`, `reinstate_question`, `regenerate_domain_questions` with atomic `BEGIN IMMEDIATE` transactions and generate-before-delete regeneration.
+- `app/api/routers/questions.py` — admin-only `/questions` CRUD and `/domains/{id}/regenerate-questions` endpoints.
+- `app/api/dependencies.py` — shared `get_current_user` and `require_admin` dependencies extracted from the users router.
+- `app/models/questions.py` — `AddQuestionRequest`, `EditQuestionRequest`.
+- `tests/unit/test_questions_service.py` — unit tests for service functions and guardrails.
+- `tests/steps/test_domain_seeding_and_questions.py` — BDD step definitions for SEED-01..06.
+- `features/domain-seeding-and-questions.feature` — extended with SEED-04..06.
 
 ## Known technical notes
 
-- BDD step functions are **synchronous** and use `sqlite3` for direct DB assertions, plus `fastapi.testclient.TestClient` for HTTP. This avoids pytest-bdd async step issues.
-- `freezegun` is used for time-based scenarios.
-- pytest-bdd emits `PytestRemovedIn10Warning` warnings about fixture scoping; these are non-failing library warnings.
-- `fastapi.testclient` warns about `httpx` deprecation; also non-failing.
-- The `provisioned_tenant` fixture now calls `app.services.provisioning.provision_tenant()` so every scenario starts with a complete tenant (control record, DB file, schema, version 1, 14 domains). Existing steps that previously inserted version/domain rows now tolerate pre-existing rows.
+- BDD step functions are **synchronous** and use `sqlite3` for direct DB assertions, plus `TestClient` for HTTP.
+- `given_domain_is_ready` ensures a domain is ready by seeding it synchronously when needed; this is a pragmatic setup/verification step because the shared Background leaves domains in `pending_questions`.
 - All LLM/Tavily calls in the test suite use fakes; no real model or network is invoked.
+- The `provisioned_tenant` fixture does **not** eagerly seed domains, preserving SEED-01..03 semantics.
 
-## Next task: Task 10
+## Next task: Task 11
 
-**Objective:** Question management — admin custom questions, disabling seeded questions, and regeneration guardrails. Scenarios SEED-04..06.
+**Objective:** Notifications service — in-app feed endpoint, console/SES email backend, single `notify()` service used by all workflows. Scenario-exempt as a standalone feature, but every "should be notified" Then step across USER/ASSN/QSTN/REVW scenarios exercises it.
 
 **Files likely to create/modify (per master plan):**
-- `app/services/questions.py`, `app/api/routers/questions.py`
-- `tests/steps/test_domain_seeding_and_questions.py`
-- Possibly extend `features/domain-seeding-and-questions.feature` (requires human approval per `AGENTS.md`).
+- `app/models/notification.py`, `app/services/notifications.py`, `app/api/routers/notifications.py`, `tests/unit/test_services_notifications.py`
+- Modify `app/db/schema/tenant.sql`, `app/main.py`, `app/config.py`, `tests/steps/conftest.py`
 
 **Key constraints:**
-- C-08: exactly 14 domains, 5-10 enabled questions each.
-- Regeneration only allowed when a domain is unanswered/unapproved.
+- Single `notify(db, user_id, kind, payload)` signature used by all workflows.
+- Console backend in dev/test, SES in prod.
 
 **Verification target:**
-- `uv run pytest tests/steps/test_domain_seeding_and_questions.py -q -k "SEED-04 or SEED-05 or SEED-06"` green.
-- Full BDD suite remains green.
+- `uv run pytest tests/unit/test_services_notifications.py -q` green.
+- Coverage on `app/services` ≥ 85%.
