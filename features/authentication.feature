@@ -38,3 +38,13 @@ Feature: Authentication
     When the user uses the session after 8 hours and 1 minute
     Then the session is rejected as expired
     And the answer "yes" still exists
+
+  Scenario: Password reset via 30-min link (AUTH-07)
+    When the user requests a password reset
+    Then a reset email with a token is sent
+    When the user resets the password using the token to "NewPassword123"
+    Then the user's password is "NewPassword123"
+    When the user requests a password reset again
+    And 31 minutes pass
+    And the user tries to reset the password using the expired token to "AnotherPass12"
+    Then the reset is rejected as expired

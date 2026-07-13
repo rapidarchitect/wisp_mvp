@@ -56,6 +56,14 @@ def test_expired_session_preserves_saved_work_auth06():
     pass
 
 
+@scenario(
+    "../../features/authentication.feature",
+    "Password reset via 30-min link (AUTH-07)",
+)
+def test_password_reset_via_30_min_link_auth07():
+    pass
+
+
 def _tenant_db_path(data_dir, slug):
     return data_dir / "tenants" / f"{slug}.db"
 
@@ -330,3 +338,89 @@ def then_answer_still_exists(provisioned_tenant, data_dir, text):
         assert cur.fetchone() is not None
     finally:
         conn.close()
+
+
+@when("the user requests a password reset")
+@when("the user requests a password reset again")
+def when_user_requests_password_reset(client, context, enrolled_user):
+    """POST /auth/password-reset-request with the user's email."""
+    context["response"] = client.post(
+        "/auth/password-reset-request",
+        json={"email": enrolled_user["email"]},
+    )
+
+
+@then("a reset email with a token is sent")
+def then_reset_email_with_token_sent(context):
+    """Verify the console backend captured a reset email containing a token."""
+    from app.services.email_backends import get_sent_messages
+
+    messages = get_sent_messages()
+    assert len(messages) >= 1
+    last = messages[-1]
+    assert "password reset" in last["subject"].lower()
+    assert "token=" in last["body"]
+    token = last["body"].split("token=")[1].split()[0]
+    context["reset_token"] = token
+
+
+@when(parsers.parse('the user resets the password using the token to "{new_password}"'))
+def when_user_resets_password(client, context, new_password):
+    """POST /auth/password-reset with the captured token and new password."""
+    context["response"] = client.post(
+        "/auth/password-reset",
+        json={"token": context["reset_token"], "new_password": new_password},
+    )
+
+
+@then(parsers.parse('the user\'s password is "{password}"'))
+def then_user_password_is(provisioned_tenant, data_dir, enrolled_user, password):
+    """Verify the stored password hash matches the given plaintext."""
+    from app.services.auth import verify_password
+
+    path = _tenant_db_path(data_dir, provisioned_tenant)
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            "SELECT password_hash FROM users WHERE id = ?",
+            (enrolled_user["id"],),
+        )
+        row = cur.fetchone()
+        assert verify_password(password, row[0]) is True
+    finally:
+        conn.close()
+
+
+@when("31 minutes pass")
+def when_31_minutes_pass(context):
+    """Advance freezegun time by 31 minutes and keep the freezer for cleanup."""
+    from freezegun import freeze_time
+
+    future = datetime.now(UTC) + timedelta(minutes=31)
+    freezer = freeze_time(future)
+    freezer.start()
+    context["freezer"] = freezer
+
+
+@when(
+    parsers.parse(
+        'the user tries to reset the password using the expired token to "{new_password}"'
+    )
+)
+def when_user_tries_expired_reset(client, context, new_password):
+    """POST /auth/password-reset with the expired token."""
+    context["response"] = client.post(
+        "/auth/password-reset",
+        json={"token": context["reset_token"], "new_password": new_password},
+    )
+    if "freezer" in context:
+        context["freezer"].stop()
+        del context["freezer"]
+
+
+@then("the reset is rejected as expired")
+def then_reset_rejected_expired(context):
+    """Assert the reset endpoint rejected the expired token."""
+    response = context["response"]
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "token_expired"

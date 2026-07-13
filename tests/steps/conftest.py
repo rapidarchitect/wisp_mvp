@@ -139,3 +139,12 @@ def client(app):
 def context():
     """Mutable dict for passing state between pytest-bdd steps."""
     return {}
+
+
+@pytest.fixture(autouse=True)
+def _clear_captured_emails():
+    """Reset the console email backend before every BDD scenario."""
+    from app.services.email_backends import clear_sent_messages
+
+    clear_sent_messages()
+    yield
