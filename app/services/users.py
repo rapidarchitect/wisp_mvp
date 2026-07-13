@@ -4,6 +4,7 @@ import json
 
 from app.db.tenant import TenantDB
 from app.exceptions import NotFoundError
+from app.services.notifications import notify
 
 
 async def list_users(db: TenantDB) -> list[dict]:
@@ -39,6 +40,13 @@ async def set_roles(
         "UPDATE users SET roles = ? WHERE id = ?",
         (json.dumps(roles), target["id"]),
     )
+    await notify(
+        db,
+        user_id=target["id"],
+        kind="roles_updated",
+        payload={"roles": ", ".join(roles)},
+        channel="both",
+    )
     await db.commit()
     return {"id": target["id"], "email": target_email, "roles": roles}
 
@@ -51,7 +59,7 @@ async def deactivate_user(
 ) -> dict:
     """Deactivate a user and unassign their domains."""
     target = await db.fetchone(
-        "SELECT id FROM users WHERE email = ?",
+        "SELECT id, email FROM users WHERE email = ?",
         (target_email,),
     )
     if target is None:
@@ -86,6 +94,13 @@ async def deactivate_user(
     await db.execute(
         "UPDATE users SET status = 'deactivated' WHERE id = ?",
         (user_id,),
+    )
+    await notify(
+        db,
+        user_id=user_id,
+        kind="account_deactivated",
+        payload={"email": target["email"]},
+        channel="both",
     )
     await db.commit()
     return {"id": user_id, "email": target_email, "status": "deactivated"}

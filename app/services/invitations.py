@@ -4,8 +4,10 @@ import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
+from app.config import settings
 from app.db.tenant import TenantDB
 from app.exceptions import ConflictError, NotFoundError, ValidationError
+from app.services.email_backends import get_email_backend
 
 
 async def invite_user(
@@ -42,6 +44,13 @@ async def invite_user(
         ),
     )
     await db.commit()
+    activation_url = f"https://{db.slug}.{settings.base_domain}/activate?token={token}"
+    backend = get_email_backend()
+    await backend.send(
+        to=email,
+        subject="You have been invited to WISPGen",
+        body=f"Click to activate your account: {activation_url}",
+    )
     return {"token": token, "email": email, "roles": roles}
 
 
