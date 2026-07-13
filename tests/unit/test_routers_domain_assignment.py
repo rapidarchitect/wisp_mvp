@@ -184,3 +184,19 @@ def test_list_unassigned_domains(auth_client):
     assert response.status_code == 200
     data = response.json()
     assert any(item["code"] == "AC" for item in data)
+
+
+def test_non_admin_cannot_list_unassigned_domains(auth_client):
+    """A non-admin user calling GET /domains/unassigned receives a 403."""
+    client, _, contributor_headers, _ = auth_client
+    response = client.get("/domains/unassigned", headers=contributor_headers)
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+def test_unauthenticated_cannot_list_assigned_domains(auth_client):
+    """An unauthenticated caller calling GET /domains/assigned receives a 401."""
+    client, _, _, _ = auth_client
+    response = client.get("/domains/assigned", headers={"Authorization": "Bearer invalid"})
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "session_expired"

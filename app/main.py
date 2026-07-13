@@ -60,7 +60,8 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
 
 @app.exception_handler(AuthorizationError)
 async def authorization_error_handler(request: Request, exc: AuthorizationError) -> JSONResponse:
-    return _error_response(exc.code, str(exc), 401)
+    status = 403 if exc.code == "forbidden" else 401
+    return _error_response(exc.code, str(exc), status)
 
 
 @app.exception_handler(ConflictError)
