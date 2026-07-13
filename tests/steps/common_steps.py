@@ -9,7 +9,7 @@ from pytest_bdd import given, parsers, then
 from app.services.auth import hash_password
 from app.services.provisioning import _DOMAINS
 from app.services.totp import generate_totp_secret
-from tests.steps.conftest import _tenant_db_path
+from tests.steps.helpers import _tenant_db_path
 
 
 def _roles_list(roles_str: str) -> list[str]:

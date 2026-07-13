@@ -1,9 +1,8 @@
 """Shared fixtures and Gherkin step definitions for pytest-bdd."""
 
-import json
 import sqlite3
-from pathlib import Path
 
+import orjson
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -20,6 +19,7 @@ from app.api.routers.users import router as users_router
 from app.db.control import init_control_db
 from app.middleware.tenancy import TenantMiddleware
 from app.services.payment import FakeStripeClient
+from tests.steps.helpers import _tenant_db_path  # noqa: F401
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def given_enrolled_admin(provisioned_tenant, data_dir, email, password, context)
             (
                 email,
                 hash_password(password),
-                json.dumps(["admin"]),
+                orjson.dumps(["admin"]).decode("utf-8"),
                 "active",
                 secret,
                 1,
@@ -215,7 +215,8 @@ def app(data_dir, control_db_path, monkeypatch):
 
     @application.exception_handler(AuthorizationError)
     async def authorization_error_handler(request, exc):
-        return _error_response(exc.code, str(exc), 401)
+        status = 403 if exc.code == "forbidden" else 401
+        return _error_response(exc.code, str(exc), status)
 
     @application.exception_handler(ConflictError)
     async def conflict_error_handler(request, exc):
@@ -247,7 +248,3 @@ def _clear_captured_emails():
 
     clear_sent_messages()
     yield
-
-
-def _tenant_db_path(data_dir: Path, slug: str) -> Path:
-    return data_dir / "tenants" / f"{slug}.db"
