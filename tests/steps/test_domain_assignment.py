@@ -5,7 +5,7 @@ import sqlite3
 
 from pytest_bdd import given, parsers, scenario, then, when
 
-from tests.steps.common_steps import _domain_name  # noqa: F401  # registers shared BDD steps
+from tests.steps.common_steps import _domain_name
 from tests.steps.conftest import _tenant_db_path
 
 
