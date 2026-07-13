@@ -78,11 +78,11 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | SEED-04 | Admin adds custom question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
 | SEED-05 | Admin disables seeded question | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
 | SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | integration | test_domain_seeding_and_questions | Task 10 | green |
-| ASSN-01 | Assign contributor and reviewer | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
-| ASSN-02 | One contributor, one reviewer at a time | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
-| ASSN-03 | Reassignment preserves work | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
-| ASSN-04 | Contributors see only assigned domains | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
-| ASSN-05 | Unassigned domains flagged to Admin | domain-assignment | integration | test_domain_assignment | Task 12 | planned |
+| ASSN-01 | Assign contributor and reviewer | domain-assignment | integration | test_domain_assignment | Task 12 | green |
+| ASSN-02 | One contributor, one reviewer at a time | domain-assignment | integration | test_domain_assignment | Task 12 | green |
+| ASSN-03 | Reassignment preserves work | domain-assignment | integration | test_domain_assignment | Task 12 | green |
+| ASSN-04 | Contributors see only assigned domains | domain-assignment | integration | test_domain_assignment | Task 12 | green |
+| ASSN-05 | Unassigned domains flagged to Admin | domain-assignment | integration | test_domain_assignment | Task 12 | green |
 | QSTN-01 | Answer triggers up to 3 AI follow-ups | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | planned |
 | QSTN-02 | AI compiles domain final answer | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | planned |
 | QSTN-03 | Submission sends domain to review | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | planned |

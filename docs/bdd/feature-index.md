@@ -28,11 +28,11 @@ This inventory maps each Gherkin feature file to its scenarios and owning SPEC t
 | domain-seeding-and-questions | SEED-04 | Admin adds custom question | test_domain_seeding_and_questions | Task 10 | planned |
 | domain-seeding-and-questions | SEED-05 | Admin disables seeded question | test_domain_seeding_and_questions | Task 10 | planned |
 | domain-seeding-and-questions | SEED-06 | Regeneration only when unanswered | test_domain_seeding_and_questions | Task 10 | planned |
-| domain-assignment | ASSN-01 | Assign contributor and reviewer | test_domain_assignment | Task 12 | planned |
-| domain-assignment | ASSN-02 | One contributor, one reviewer at a time | test_domain_assignment | Task 12 | planned |
-| domain-assignment | ASSN-03 | Reassignment preserves work | test_domain_assignment | Task 12 | planned |
-| domain-assignment | ASSN-04 | Contributors see only assigned domains | test_domain_assignment | Task 12 | planned |
-| domain-assignment | ASSN-05 | Unassigned domains flagged to Admin | test_domain_assignment | Task 12 | planned |
+| domain-assignment | ASSN-01 | Assign contributor and reviewer | test_domain_assignment | Task 12 | green |
+| domain-assignment | ASSN-02 | One contributor, one reviewer at a time | test_domain_assignment | Task 12 | green |
+| domain-assignment | ASSN-03 | Reassignment preserves work | test_domain_assignment | Task 12 | green |
+| domain-assignment | ASSN-04 | Contributors see only assigned domains | test_domain_assignment | Task 12 | green |
+| domain-assignment | ASSN-05 | Unassigned domains flagged to Admin | test_domain_assignment | Task 12 | green |
 | contributor-questionnaire | QSTN-01 | Answer triggers up to 3 AI follow-ups | test_contributor_questionnaire | Task 13 | planned |
 | contributor-questionnaire | QSTN-02 | AI compiles domain final answer | test_contributor_questionnaire | Task 14 | planned |
 | contributor-questionnaire | QSTN-03 | Submission sends domain to review | test_contributor_questionnaire | Task 14 | planned |
