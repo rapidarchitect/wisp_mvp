@@ -23,3 +23,27 @@ Feature: Domain Seeding and Questions
     When the admin seeds all domains
     Then seeding is marked as pending for at least one domain
     And no exception is raised
+
+  Scenario: Admin adds custom question (SEED-04)
+    Given "admin@palmetto.app.wisp.llc" is signed in
+    And domain "AC" is ready
+    When the admin adds a custom question "Do you require MFA on all remote access?" to domain "AC"
+    Then domain "AC" has 6 enabled questions
+    And the new question has origin "admin"
+
+  Scenario: Admin disables seeded question (SEED-05)
+    Given "admin@palmetto.app.wisp.llc" is signed in
+    And domain "AC" is ready
+    And the admin has added a custom question to domain "AC"
+    When the admin disables a seeded question in domain "AC"
+    Then the disabled question is hidden
+    And domain "AC" has 5 enabled questions
+
+  Scenario: Regeneration only when unanswered (SEED-06)
+    Given "admin@palmetto.app.wisp.llc" is signed in
+    And domain "AC" is ready
+    When the admin regenerates questions for domain "AC"
+    Then domain "AC" has fresh seeded questions
+    When a contributor answers a question in domain "AC"
+    And the admin regenerates questions for domain "AC"
+    Then the regeneration is rejected with "domain_has_answers"
