@@ -1,0 +1,1 @@
+"""Domain assignment data models."""
