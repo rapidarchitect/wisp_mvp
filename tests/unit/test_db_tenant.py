@@ -50,6 +50,23 @@ async def test_init_tenant_db_creates_schema(tenant_factory):
         await db.close()
 
 
+async def test_init_tenant_db_creates_domain_assignment_indexes(tenant_factory):
+    """Domain assignments have indexes for contributor and reviewer lookups."""
+    db = await tenant_factory("acme")
+    try:
+        for index in (
+            "idx_domain_assignments_contributor",
+            "idx_domain_assignments_reviewer",
+        ):
+            row = await db.fetchone(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name=?", (index,)
+            )
+            assert row is not None, f"missing index {index}"
+            assert row[0] == index
+    finally:
+        await db.close()
+
+
 async def test_two_tenants_do_not_share_data(tenant_factory, tmp_path):
     """C-01: rows written in tenant A are invisible to tenant B."""
     acme = await tenant_factory("acme")

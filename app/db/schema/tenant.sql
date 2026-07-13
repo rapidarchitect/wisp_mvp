@@ -160,3 +160,5 @@ CREATE INDEX IF NOT EXISTS idx_followups_answer_id ON followups(answer_id);
 CREATE INDEX IF NOT EXISTS idx_compiled_answers_domain_id ON compiled_answers(domain_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_events_actor ON audit_events(actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_domain_assignments_contributor ON domain_assignments(contributor_id);
+CREATE INDEX IF NOT EXISTS idx_domain_assignments_reviewer ON domain_assignments(reviewer_id);
