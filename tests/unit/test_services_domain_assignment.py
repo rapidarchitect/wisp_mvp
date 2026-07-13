@@ -318,8 +318,8 @@ async def test_assign_domain_preserves_answers_and_compiled_text(tmp_path):
     await _seed_domain(db, version_id, status="assigned")
     old_contributor = await _seed_user(db, "c1@acme.app.wisp.llc", ["contributor"])
     old_reviewer = await _seed_user(db, "r1@acme.app.wisp.llc", ["reviewer"])
-    new_contributor = await _seed_user(db, "c2@acme.app.wisp.llc", ["contributor"])
-    new_reviewer = await _seed_user(db, "r2@acme.app.wisp.llc", ["reviewer"])
+    await _seed_user(db, "c2@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r2@acme.app.wisp.llc", ["reviewer"])
 
     await db.execute(
         """
@@ -333,13 +333,26 @@ async def test_assign_domain_preserves_answers_and_compiled_text(tmp_path):
         ),
     )
     await db.execute(
-        "INSERT INTO questions (domain_id, text, answer_type, origin, enabled, position) VALUES (?, ?, ?, ?, ?, ?)",
-        ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0], "Q", "yes_no", "seeded", 1, 0),
+        """
+        INSERT INTO questions (domain_id, text, answer_type, origin, enabled, position)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            (await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0],
+            "Q",
+            "yes_no",
+            "seeded",
+            1,
+            0,
+        ),
     )
     await db.commit()
     question_id = (await db.fetchone("SELECT id FROM questions WHERE text = 'Q'"))[0]
     await db.execute(
-        "INSERT INTO answers (question_id, contributor_id, value, skipped, followups_state) VALUES (?, ?, ?, ?, ?)",
+        """
+        INSERT INTO answers (question_id, contributor_id, value, skipped, followups_state)
+        VALUES (?, ?, ?, ?, ?)
+        """,
         (question_id, old_contributor, "yes", 0, "complete"),
     )
     await db.execute(
@@ -356,8 +369,15 @@ async def test_assign_domain_preserves_answers_and_compiled_text(tmp_path):
         reviewer_email="r2@acme.app.wisp.llc",
     )
 
-    answer = await db.fetchone("SELECT contributor_id FROM answers WHERE question_id = ?", (question_id,))
-    compiled = await db.fetchone("SELECT narrative_text FROM compiled_answers WHERE domain_id = ?", ((await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0],))
+    answer = await db.fetchone(
+        "SELECT contributor_id FROM answers WHERE question_id = ?",
+        (question_id,),
+    )
+    domain_id = (await db.fetchone("SELECT id FROM domains WHERE code = 'AC'"))[0]
+    compiled = await db.fetchone(
+        "SELECT narrative_text FROM compiled_answers WHERE domain_id = ?",
+        (domain_id,),
+    )
     assert answer["contributor_id"] == old_contributor
     assert compiled["narrative_text"] == "compiled"
     await db.close()
@@ -368,8 +388,8 @@ async def test_get_unassigned_domains_flags_missing_roles(tmp_path):
     version_id = await _seed_version(db)
     await _seed_domain(db, version_id, code="AC", status="ready")
     await _seed_domain(db, version_id, code="PE", status="ready")
-    contributor = await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
-    reviewer = await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
+    await _seed_user(db, "c@acme.app.wisp.llc", ["contributor"])
+    await _seed_user(db, "r@acme.app.wisp.llc", ["reviewer"])
 
     # Fully assign AC, leave PE unassigned.
     await assign_domain(
