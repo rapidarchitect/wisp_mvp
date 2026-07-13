@@ -30,9 +30,7 @@ app.include_router(signup_router, prefix="/signup", tags=["signup"])
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(questions_router, prefix="/questions", tags=["questions"])
 app.include_router(domains_router, prefix="/domains", tags=["domains"])
-app.include_router(
-    domain_assignment_router, prefix="/domains", tags=["domains"]
-)
+app.include_router(domain_assignment_router, prefix="/domains", tags=["domains"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.
