@@ -31,3 +31,15 @@ Feature: Contributor questionnaire flow
     Then the answer follow-up state is "waived"
     And the contributor receives a "followups_waived" notification
     And the domain "AC" progress shows submit_ready true
+
+  Scenario: QSTN-02 AI compiles the domain final answer
+    Given a fully answered domain "AC" for "contributor@palmetto.app.wisp.llc"
+    When "contributor@palmetto.app.wisp.llc" compiles domain "AC"
+    Then the compiled answer narrative is non-empty
+    And a "domain_compiled" audit event exists for domain "AC"
+
+  Scenario: QSTN-03 Contributor submits the domain for review
+    Given a compiled domain "AC" for "contributor@palmetto.app.wisp.llc"
+    When "contributor@palmetto.app.wisp.llc" submits domain "AC"
+    Then the domain "AC" status is "in_review"
+    And the reviewer receives a "domain_submitted" notification
