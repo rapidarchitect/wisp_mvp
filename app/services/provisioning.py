@@ -1,5 +1,6 @@
 """Tenant provisioning services: create DB, version, and 14 domains."""
 
+import sqlite3
 from pathlib import Path
 
 from app.db.tenant import init_tenant_db
@@ -51,6 +52,23 @@ async def create_initial_version(tenant_db, *, tenant_id: int) -> int:
 async def create_14_domains(tenant_db, *, version_id: int) -> None:
     """Insert the 14 NIST-style security domains for a WISP version."""
     await tenant_db.executemany(
+        "INSERT INTO domains (code, name, wisp_version_id) VALUES (?, ?, ?)",
+        [(code, name, version_id) for code, name in _DOMAINS],
+    )
+
+
+def _create_initial_version(conn: sqlite3.Connection, *, tenant_id: int) -> int:
+    """Synchronous version for e2e seeding scripts."""
+    cur = conn.execute(
+        "INSERT INTO wisp_versions (tenant_id, number, status) VALUES (?, ?, ?)",
+        (tenant_id, 1, "in_progress"),
+    )
+    return cur.lastrowid
+
+
+def _insert_empty_domains(conn: sqlite3.Connection, *, version_id: int) -> None:
+    """Synchronous version for e2e seeding scripts."""
+    conn.executemany(
         "INSERT INTO domains (code, name, wisp_version_id) VALUES (?, ?, ?)",
         [(code, name, version_id) for code, name in _DOMAINS],
     )

@@ -8,7 +8,6 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:4173",
     trace: "on-first-retry",
   },
   projects: [
@@ -17,20 +16,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: [
-    {
-      command:
-        "cd .. && WISPGEN_BASE_DOMAIN=localhost LLM_PROVIDER=fake uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
-      url: "http://localhost:8000/health",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-    {
-      command: "npm run preview",
-      url: "http://localhost:4173",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-  ],
+  webServer: {
+    command:
+      "cd .. && WISPGEN_BASE_DOMAIN=localhost LLM_PROVIDER=fake uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    url: "http://localhost:8000/health",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
   globalSetup: "./e2e/global-setup.ts",
 });
