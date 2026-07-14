@@ -11,6 +11,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from app.ai.fakes import FakeLLM  # noqa: E402
+
+_FAKE_QUESTIONS_JSON = (
+    '{"questions": ['
+    '{"text": "Do you restrict physical access to servers?"},'
+    '{"text": "Do you encrypt laptops?"},'
+    '{"text": "Do you perform background checks?"},'
+    '{"text": "Do you have an incident response plan?"},'
+    '{"text": "Do you review access logs regularly?"},'
+    '{"text": "Do you disable accounts on termination?"}'
+    ']}'
+)
 from app.db.control import init_control_db  # noqa: E402
 from app.db.tenant import get_tenant_db  # noqa: E402
 from app.services.auth import hash_password  # noqa: E402
@@ -66,7 +77,9 @@ async def _seed_demo_tenant() -> None:
         try:
             version = await tenant_db.fetchone("SELECT id FROM wisp_versions WHERE number = 1")
             version_id = version["id"]
-            await seed_all_domains(tenant_db, version_id=version_id, llm=FakeLLM())
+            await seed_all_domains(
+                tenant_db, version_id=version_id, llm=FakeLLM(default=_FAKE_QUESTIONS_JSON)
+            )
             await tenant_db.commit()
         finally:
             await tenant_db.close()
