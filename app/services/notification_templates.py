@@ -30,6 +30,15 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "Your WISP is complete",
         "All 14 domains have been approved. Your WISP is complete.",
     ),
+    "answer_saved": (
+        "Answer saved",
+        "Your answer has been saved.",
+    ),
+    "followups_waived": (
+        "Follow-up questions waived",
+        "We were unable to generate follow-up questions for one of your answers. "
+        "The answer has been marked complete so you can continue.",
+    ),
 }
 
 
