@@ -155,6 +155,40 @@ def then_compiled_narrative_non_empty(context):
     assert context["compile_response"]["narrative_text"]
 
 
+@given(parsers.parse('the reviewer approves domain "{code}"'))
+@when(parsers.parse('the reviewer approves domain "{code}"'))
+def when_reviewer_approves_domain(client, context, code):
+    response = client.post(
+        f"/domains/{code}/approve",
+        headers={"Authorization": f"Bearer {context['session_token']}"},
+    )
+    assert response.status_code == 200
+    context["approve_response"] = response.json()
+
+
+@given(parsers.parse('the reviewer revises domain "{code}" with prompt "{prompt}"'))
+@when(parsers.parse('the reviewer revises domain "{code}" with prompt "{prompt}"'))
+def when_reviewer_revises_domain(client, context, code, prompt):
+    response = client.post(
+        f"/domains/{code}/revise",
+        json={"revision_prompt": prompt},
+        headers={"Authorization": f"Bearer {context['session_token']}"},
+    )
+    assert response.status_code == 200
+    context["revise_response"] = response.json()
+
+
+@given(parsers.parse('the reviewer defers domain "{code}"'))
+@when(parsers.parse('the reviewer defers domain "{code}"'))
+def when_reviewer_defers_domain(client, context, code):
+    response = client.post(
+        f"/domains/{code}/defer",
+        headers={"Authorization": f"Bearer {context['session_token']}"},
+    )
+    assert response.status_code == 200
+    context["defer_response"] = response.json()
+
+
 @then(parsers.parse('a "{event_type}" audit event exists for domain "{code}"'))
 def then_audit_event_for_domain(client, context, data_dir, provisioned_tenant, event_type, code):
     path = _tenant_db_path(data_dir, provisioned_tenant)

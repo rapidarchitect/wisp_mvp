@@ -147,37 +147,6 @@ def given_all_14_domains_submitted(data_dir, provisioned_tenant, email, context)
         conn.close()
 
 
-@when(parsers.parse('the reviewer approves domain "{code}"'))
-def when_reviewer_approves_domain(client, context, code):
-    response = client.post(
-        f"/domains/{code}/approve",
-        headers={"Authorization": f"Bearer {context['session_token']}"},
-    )
-    assert response.status_code == 200
-    context["approve_response"] = response.json()
-
-
-@when(parsers.parse('the reviewer revises domain "{code}" with prompt "{prompt}"'))
-def when_reviewer_revises_domain(client, context, code, prompt):
-    response = client.post(
-        f"/domains/{code}/revise",
-        json={"revision_prompt": prompt},
-        headers={"Authorization": f"Bearer {context['session_token']}"},
-    )
-    assert response.status_code == 200
-    context["revise_response"] = response.json()
-
-
-@when(parsers.parse('the reviewer defers domain "{code}"'))
-def when_reviewer_defers_domain(client, context, code):
-    response = client.post(
-        f"/domains/{code}/defer",
-        headers={"Authorization": f"Bearer {context['session_token']}"},
-    )
-    assert response.status_code == 200
-    context["defer_response"] = response.json()
-
-
 @when("the reviewer approves the last domain")
 def when_reviewer_approves_last_domain(client, context):
     code = context["last_domain_code"]

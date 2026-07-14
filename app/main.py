@@ -13,6 +13,7 @@ from app.api.routers.questions import router as questions_router
 from app.api.routers.review import router as review_router
 from app.api.routers.signup import router as signup_router
 from app.api.routers.users import router as users_router
+from app.api.routers.versions import router as versions_router
 from app.config import settings
 from app.exceptions import (
     AuthorizationError,
@@ -37,6 +38,7 @@ app.include_router(domain_assignment_router, prefix="/domains", tags=["domains"]
 app.include_router(questionnaire_router, tags=["questionnaire"])
 app.include_router(compilation_router, tags=["compilation"])
 app.include_router(review_router, tags=["review"])
+app.include_router(versions_router, tags=["versions"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.

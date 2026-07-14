@@ -94,11 +94,11 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | REVW-03 | Reviewer defers decision | review-workflow | integration | test_review_workflow | Task 15 | green |
 | REVW-04 | Self-review allowed with warning | review-workflow | integration | test_review_workflow | Task 15 | green |
 | REVW-05 | All approved completes the WISP | review-workflow | integration | test_review_workflow | Task 15 | green |
-| VERS-01 | Draft export carries watermark | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
-| VERS-02 | Complete WISP exports clean | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
-| VERS-03 | New version clones approved baseline | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
-| VERS-04 | Only one version in progress | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
-| VERS-05 | Prior versions remain exportable | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
+| VERS-01 | Draft export carries watermark | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
+| VERS-02 | Complete WISP exports clean | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
+| VERS-03 | New version clones approved baseline | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
+| VERS-04 | Only one version in progress | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
+| VERS-05 | Prior versions remain exportable | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
 
 Browser-level duplicates (full Playwright coverage, Tasks 17, 18, 20): every scenario above gains an `e2e` row realized as a Playwright spec; the canonical mapping is one spec file per feature (Section 3). Playwright specs assert user-visible outcomes only; exhaustive variants stay at the pytest-bdd level.
 
