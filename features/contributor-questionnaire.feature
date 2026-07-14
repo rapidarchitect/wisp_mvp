@@ -2,8 +2,8 @@ Feature: Contributor questionnaire flow
 
   Background:
     Given a provisioned tenant "palmetto"
-    And an enrolled user "contributor@palmetto.app.wisp.llc" with password "pw" and roles "contributor"
-    And an enrolled user "reviewer@palmetto.app.wisp.llc" with password "pw" and roles "reviewer"
+    And an enrolled user "contributor@palmetto.app.wisp.llc" with password "SecurePass123!" and roles "contributor"
+    And an enrolled user "reviewer@palmetto.app.wisp.llc" with password "SecurePass123!" and roles "reviewer"
     And domain "AC" is assigned to "contributor@palmetto.app.wisp.llc" as contributor and "reviewer@palmetto.app.wisp.llc" as reviewer
     And "contributor@palmetto.app.wisp.llc" is signed in
 
