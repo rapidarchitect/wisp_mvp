@@ -1,126 +1,61 @@
 import { expect, test } from "@playwright/test";
-import { API_BASE, generateTotpCode } from "./helpers";
 
-// End-to-end API smoke tests for the contributor questionnaire flow.
-// The frontend is still a scaffold; these tests exercise the full backend stack.
+import { generateTotpCodeFromUri } from "./helpers";
 
-async function login(
-  request: any,
-  email: string,
-): Promise<{ token: string; status: number }> {
-  const response = await request.post(`${API_BASE}/auth/login`, {
-    headers: { Host: "demo.localhost:8000" },
-    data: {
-      email,
-      password: "UserPass123!",
-      totp_code: generateTotpCode(),
-    },
-  });
-  const status = response.status();
-  const body = status === 200 ? await response.json() : {};
-  return { token: body.token || "", status };
+const CONTRIBUTOR_EMAIL = "contributor@demo.example.com";
+const CONTRIBUTOR_PASSWORD = "UserPass123!";
+
+async function loginAsContributor(page: any) {
+  await page.goto("http://demo.localhost:5173/login");
+  await expect(page.getByText("Log in to")).toBeVisible();
+  await page.getByLabel("Email").fill(CONTRIBUTOR_EMAIL);
+  await page.getByLabel("Password").fill(CONTRIBUTOR_PASSWORD);
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await page.getByLabel("Authenticator code").fill(generateTotpCodeFromUri("otpauth://totp/WISPGen:contributor%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen"));
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 10000 });
 }
 
-test.describe("Contributor Questionnaire E2E", () => {
-  test("contributor answers a question, responds to follow-ups, and domain becomes submittable", async ({
-    request,
-  }) => {
-    // Admin assigns an unassigned domain to the deterministic contributor/reviewer.
-    const admin = await login(request, "admin@demo.example.com");
-    expect(admin.status).toBe(200);
+test("answering a question generates follow-ups and AI compiles the domain (QSTN-01, QSTN-02)", async ({ page }) => {
+  await loginAsContributor(page);
 
-    const unassignedResponse = await request.get(
-      `${API_BASE}/domains/unassigned`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${admin.token}`,
-        },
-      },
-    );
-    expect(unassignedResponse.status()).toBe(200);
-    const unassigned = await unassignedResponse.json();
-    expect(unassigned.length).toBeGreaterThan(0);
-    const domainCode = unassigned[0].code;
+  await page.getByRole("link", { name: "My domains" }).click();
+  await expect(page.getByRole("heading", { name: "My domains" })).toBeVisible();
+  await page.getByText("Access Control (AC)").click();
 
-    const assignResponse = await request.post(
-      `${API_BASE}/domains/${domainCode}/assign`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${admin.token}`,
-        },
-        data: {
-          contributor_email: "contributor@demo.example.com",
-          reviewer_email: "reviewer@demo.example.com",
-        },
-      },
-    );
-    expect(assignResponse.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: /Access Control/ })).toBeVisible();
 
-    // Contributor fetches progress to discover a question id.
-    const contributor = await login(request, "contributor@demo.example.com");
-    expect(contributor.status).toBe(200);
+  // Answer the first question with "yes" to trigger follow-ups from the fake LLM.
+  const firstQuestionCard = page.locator(".MuiCard-root[data-question]").filter({ hasText: /1\. Do you restrict physical access/ }).first();
+  await expect(firstQuestionCard.getByText(/1\. Do you restrict physical access/)).toBeVisible();
+  const yesLabel = page.locator("span[data-choice='yes']").first();
+  await expect(yesLabel).toBeVisible();
+  await yesLabel.click();
 
-    const progressResponse = await request.get(
-      `${API_BASE}/domains/${domainCode}/progress`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${contributor.token}`,
-        },
-      },
-    );
-    expect(progressResponse.status()).toBe(200);
-    const progress = await progressResponse.json();
-    expect(progress.questions.length).toBeGreaterThan(0);
-    const question = progress.questions[0];
+  // Wait for follow-up state to render and assert fake follow-up text appears.
+  await expect(firstQuestionCard.getByText(/Follow-ups:/)).toBeVisible({ timeout: 10000 });
+  await expect(firstQuestionCard.getByText("fake-llm-response")).toBeVisible();
 
-    // Answer every question in the domain and respond to any generated follow-ups.
-    for (const question of progress.questions) {
-      const answerResponse = await request.post(
-        `${API_BASE}/questions/${question.id}/answer`,
-        {
-          headers: {
-            Host: "demo.localhost:8000",
-            Authorization: `Bearer ${contributor.token}`,
-          },
-          data: { value: "yes" },
-        },
-      );
-      expect(answerResponse.status()).toBe(200);
-      const answer = await answerResponse.json();
-      expect(answer.value).toBe("yes");
-      expect(answer.followups.length).toBeGreaterThanOrEqual(0);
-      expect(answer.followups.length).toBeLessThanOrEqual(3);
+  // Fill the follow-up response for the first follow-up and let onBlur persist it.
+  const firstFollowup = firstQuestionCard.locator("[data-followup]").first();
+  const responseInput = firstFollowup.locator("input");
+  await responseInput.fill("Documented in policy.");
+  await responseInput.blur();
+  await page.waitForTimeout(500);
 
-      for (const followup of answer.followups) {
-        const respondResponse = await request.post(
-          `${API_BASE}/followups/${followup.id}/respond`,
-          {
-            headers: {
-              Host: "demo.localhost:8000",
-              Authorization: `Bearer ${contributor.token}`,
-            },
-            data: { response_text: "Documented in our policy." },
-          },
-        );
-        expect(respondResponse.status()).toBe(200);
-      }
-    }
+  // Use the answer-all helper to complete any remaining questions and follow-ups.
+  const answerAllButton = page.getByTestId("answer-all");
+  await expect(answerAllButton).toBeVisible();
+  await answerAllButton.click();
+  await expect(page.getByRole("button", { name: "Compile" })).toBeEnabled({ timeout: 20000 });
 
-    // Domain should now be ready for submission.
-    const finalProgressResponse = await request.get(
-      `${API_BASE}/domains/${domainCode}/progress`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${contributor.token}`,
-        },
-      },
-    );
-    expect(finalProgressResponse.status()).toBe(200);
-    const finalProgress = await finalProgressResponse.json();
-    expect(finalProgress.submit_ready).toBe(true);
-  });
+  // Compile the domain.
+  await page.getByRole("button", { name: "Compile" }).click();
+  await expect(page.getByTestId("compiled-narrative")).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId("compiled-narrative")).toContainText("fake-llm-response");
+
+  // Submit for review.
+  await page.getByRole("button", { name: "Submit for review" }).click();
+  await expect(page.getByText("in_review")).toBeVisible({ timeout: 10000 });
 });

@@ -1,166 +1,69 @@
-import { expect, test } from "@playwright/test";
-import { API_BASE, generateTotpCode } from "./helpers";
+import { expect, Page, test } from "@playwright/test";
 
-async function login(
-  request: any,
-  email: string,
-): Promise<{ token: string; status: number }> {
-  const response = await request.post(`${API_BASE}/auth/login`, {
-    headers: { Host: "demo.localhost:8000" },
-    data: {
-      email,
-      password: "UserPass123!",
-      totp_code: generateTotpCode(),
-    },
+import { loginAsApi } from "./api";
+import { generateTotpCodeFromUri } from "./helpers";
+
+const CONTRIBUTOR_EMAIL = "contributor@demo.example.com";
+const REVIEWER_EMAIL = "reviewer@demo.example.com";
+const CODE = "AC";
+
+const TOTP_URIS: Record<string, string> = {
+  [CONTRIBUTOR_EMAIL]: "otpauth://totp/WISPGen:contributor%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen",
+  [REVIEWER_EMAIL]: "otpauth://totp/WISPGen:reviewer%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen",
+};
+
+async function loginAs(page: Page, email: string) {
+  await loginAsApi(page, email, TOTP_URIS[email]);
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 10000 });
+}
+
+test.beforeEach(async ({ request }) => {
+  const resp = await request.post(`http://demo.localhost:8000/api/v1/test/reset-domain/${CODE}`, {
+    headers: { "X-Test-Mode": "1" },
   });
-  const status = response.status();
-  const body = status === 200 ? await response.json() : {};
-  return { token: body.token || "", status };
+  expect(resp.ok()).toBeTruthy();
+});
+
+async function submitDomainForReview(page: Page, code: string) {
+  await loginAs(page, CONTRIBUTOR_EMAIL);
+  await page.getByRole("link", { name: "My domains" }).click();
+  await page.locator(`[data-domain-code="${code}"]`).click();
+  await expect(page.getByRole("heading", { name: new RegExp(code) })).toBeVisible();
+
+  const answerAllButton = page.getByTestId("answer-all");
+  await expect(answerAllButton).toBeVisible();
+  await answerAllButton.click();
+  await expect(page.getByRole("button", { name: "Compile" })).toBeEnabled({ timeout: 20000 });
+
+  await page.getByRole("button", { name: "Compile" }).click();
+  await expect(page.getByTestId("compiled-narrative")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Submit for review" }).click();
+  await expect(page.getByText("in_review")).toBeVisible({ timeout: 10000 });
 }
 
-async function assignDomain(
-  request: any,
-  token: string,
-  code: string,
-  contributorEmail: string,
-  reviewerEmail: string,
-) {
-  const response = await request.post(`${API_BASE}/domains/${code}/assign`, {
-    headers: {
-      Host: "demo.localhost:8000",
-      Authorization: `Bearer ${token}`,
-    },
-    data: {
-      contributor_email: contributorEmail,
-      reviewer_email: reviewerEmail,
-    },
-  });
-  expect(response.status()).toBe(200);
-}
+test("reviewer approves a submitted domain (REVW-01)", async ({ page }) => {
+  await submitDomainForReview(page, CODE);
 
-async function answerAllQuestions(request: any, token: string, code: string) {
-  const progressResponse = await request.get(
-    `${API_BASE}/domains/${code}/progress`,
-    {
-      headers: {
-        Host: "demo.localhost:8000",
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-  expect(progressResponse.status()).toBe(200);
-  const progress = await progressResponse.json();
+  await page.getByRole("button", { name: "Log out" }).click();
+  await loginAs(page, REVIEWER_EMAIL);
+  await page.getByRole("link", { name: "Review" }).click();
+  await page.locator(`[data-domain-code="${CODE}"]`).click();
+  await expect(page.getByRole("heading", { name: new RegExp(`Review .*${CODE}`) })).toBeVisible();
 
-  for (const question of progress.questions) {
-    const answerResponse = await request.post(
-      `${API_BASE}/questions/${question.id}/answer`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${token}`,
-        },
-        data: { value: "yes" },
-      },
-    );
-    expect(answerResponse.status()).toBe(200);
-    const answer = await answerResponse.json();
+  await page.getByRole("button", { name: "Approve", exact: true }).first().click();
+  await expect(page.getByText("Domain approved.")).toBeVisible({ timeout: 10000 });
+});
 
-    for (const followup of answer.followups) {
-      const respondResponse = await request.post(
-        `${API_BASE}/followups/${followup.id}/respond`,
-        {
-          headers: {
-            Host: "demo.localhost:8000",
-            Authorization: `Bearer ${token}`,
-          },
-          data: { response_text: "Documented in our policy." },
-        },
-      );
-      expect(respondResponse.status()).toBe(200);
-    }
-  }
-}
+test("reviewer revises with AI and approves (REVW-02)", async ({ page }) => {
+  await submitDomainForReview(page, CODE);
 
-async function compileAndSubmit(
-  request: any,
-  token: string,
-  code: string,
-): Promise<string> {
-  const compileResponse = await request.post(
-    `${API_BASE}/domains/${code}/compile`,
-    {
-      headers: {
-        Host: "demo.localhost:8000",
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-  expect(compileResponse.status()).toBe(200);
-  const compiled = await compileResponse.json();
-  expect(compiled.narrative_text).toBeTruthy();
+  await page.getByRole("button", { name: "Log out" }).click();
+  await loginAs(page, REVIEWER_EMAIL);
+  await page.getByRole("link", { name: "Review" }).click();
+  await page.locator(`[data-domain-code="${CODE}"]`).click();
+  await expect(page.getByRole("heading", { name: new RegExp(`Review .*${CODE}`) })).toBeVisible();
 
-  const submitResponse = await request.post(
-    `${API_BASE}/domains/${code}/submit`,
-    {
-      headers: {
-        Host: "demo.localhost:8000",
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-  expect(submitResponse.status()).toBe(200);
-  const submitted = await submitResponse.json();
-  expect(submitted.status).toBe("in_review");
-  return submitted.status;
-}
-
-test.describe("Review Workflow E2E", () => {
-  test("reviewer approves a submitted domain", async ({ request }) => {
-    const admin = await login(request, "admin@demo.example.com");
-    expect(admin.status).toBe(200);
-
-    const unassignedResponse = await request.get(
-      `${API_BASE}/domains/unassigned`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${admin.token}`,
-        },
-      },
-    );
-    expect(unassignedResponse.status()).toBe(200);
-    const unassigned = await unassignedResponse.json();
-    expect(unassigned.length).toBeGreaterThan(0);
-    const domainCode = unassigned[0].code;
-
-    await assignDomain(
-      request,
-      admin.token,
-      domainCode,
-      "contributor@demo.example.com",
-      "reviewer@demo.example.com",
-    );
-
-    const contributor = await login(request, "contributor@demo.example.com");
-    expect(contributor.status).toBe(200);
-    await answerAllQuestions(request, contributor.token, domainCode);
-    await compileAndSubmit(request, contributor.token, domainCode);
-
-    const reviewer = await login(request, "reviewer@demo.example.com");
-    expect(reviewer.status).toBe(200);
-
-    const approveResponse = await request.post(
-      `${API_BASE}/domains/${domainCode}/approve`,
-      {
-        headers: {
-          Host: "demo.localhost:8000",
-          Authorization: `Bearer ${reviewer.token}`,
-        },
-      },
-    );
-    expect(approveResponse.status()).toBe(200);
-    const approved = await approveResponse.json();
-    expect(approved.status).toBe("approved");
-    expect(approved.self_review).toBe(false);
-  });
+  await page.getByLabel("Revision prompt").fill("Add more detail on access logs");
+  await page.getByRole("button", { name: "Revise and approve" }).click();
+  await expect(page.getByText("Domain revised and approved.")).toBeVisible({ timeout: 10000 });
 });

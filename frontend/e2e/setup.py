@@ -61,13 +61,27 @@ def _init_tenant_db(tenant_id: int) -> None:
         if existing is None:
             version_id = _create_initial_version(conn, tenant_id=tenant_id)
             _insert_empty_domains(conn, version_id=version_id)
-            conn.commit()
+        # Reset assignment and answer data that E2E tests expect to start fresh.
+        conn.execute(
+            """
+            DELETE FROM followups
+            WHERE answer_id IN (SELECT id FROM answers)
+            """
+        )
+        conn.execute("DELETE FROM answers")
+        conn.execute("DELETE FROM compiled_answers")
+        conn.execute("DELETE FROM domain_assignments")
+        conn.execute("UPDATE wisp_versions SET status = 'in_progress', completed_at = NULL")
+        conn.execute(
+            "UPDATE domains SET status = 'pending_questions' WHERE status != 'pending_questions'"
+        )
+        conn.commit()
     finally:
         conn.close()
 
 
 def _seed_questions() -> None:
-    """Seed deterministic questions for each domain."""
+    """Seed deterministic questions for each domain, idempotently."""
     questions = [
         "Do you restrict physical access to servers?",
         "Do you encrypt laptops?",
@@ -81,6 +95,11 @@ def _seed_questions() -> None:
         conn.execute("PRAGMA foreign_keys=ON")
         for domain in conn.execute("SELECT id FROM domains").fetchall():
             domain_id = domain[0]
+            existing = conn.execute(
+                "SELECT COUNT(*) FROM questions WHERE domain_id = ?", (domain_id,)
+            ).fetchone()[0]
+            if existing:
+                continue
             for position, text in enumerate(questions, start=1):
                 conn.execute(
                     """
@@ -127,11 +146,43 @@ def _insert_test_users() -> None:
         conn.close()
 
 
+def _seed_assignment() -> None:
+    """Assign domain AC to the demo contributor and reviewer."""
+    conn = sqlite3.connect(TENANT_DB)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON")
+        contributor = conn.execute(
+            "SELECT id FROM users WHERE email = ?", ("contributor@demo.example.com",)
+        ).fetchone()
+        reviewer = conn.execute(
+            "SELECT id FROM users WHERE email = ?", ("reviewer@demo.example.com",)
+        ).fetchone()
+        domain = conn.execute("SELECT id FROM domains WHERE code = ?", ("AC",)).fetchone()
+        if contributor and reviewer and domain:
+            conn.execute(
+                """
+                INSERT INTO domain_assignments (domain_id, contributor_id, reviewer_id)
+                VALUES (?, ?, ?)
+                ON CONFLICT(domain_id) DO UPDATE SET
+                    contributor_id = excluded.contributor_id,
+                    reviewer_id = excluded.reviewer_id
+                """,
+                (domain[0], contributor[0], reviewer[0]),
+            )
+            conn.execute(
+                "UPDATE domains SET status = ? WHERE id = ?", ("assigned", domain[0])
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
 def main() -> int:
     tenant_id = _init_control_db()
     _init_tenant_db(tenant_id)
     _seed_questions()
     _insert_test_users()
+    _seed_assignment()
     print(f"E2E_TOTP_SECRET={TOTP_SECRET}")
     return 0
 

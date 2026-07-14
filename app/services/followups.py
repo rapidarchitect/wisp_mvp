@@ -50,7 +50,13 @@ async def get_followups_for_answer(
         "SELECT * FROM followups WHERE answer_id = ? ORDER BY position",
         (answer_id,),
     )
-    return [dict(row) for row in rows]
+    return [
+        {
+            **dict(row),
+            "response_text": dict(row).get("response_text") or None,
+        }
+        for row in rows
+    ]
 
 
 async def save_followup_response(

@@ -46,7 +46,20 @@ export function DashboardLayout() {
               <Button component={Link} to="/admin/domains" sx={{ mr: 1 }}>
                 Domains
               </Button>
+              <Button component={Link} to="/admin/versions" sx={{ mr: 1 }}>
+                Versions
+              </Button>
             </>
+          )}
+          {user?.roles.includes("contributor") && (
+            <Button component={Link} to="/domains" sx={{ mr: 1 }}>
+              My domains
+            </Button>
+          )}
+          {user?.roles.includes("reviewer") && (
+            <Button component={Link} to="/review" sx={{ mr: 1 }}>
+              Review
+            </Button>
           )}
         </Box>
         <Outlet />

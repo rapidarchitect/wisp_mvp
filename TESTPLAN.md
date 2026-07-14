@@ -103,6 +103,12 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | AUTH-01 | First login requires TOTP enrollment | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
 | AUTH-02 | Login with password and TOTP | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
 | USER-02 | Invited user activates account | user-and-role-management | e2e | e2e/activate.spec.ts | Task 17 | green |
+| QSTN-01 | Answer triggers up to 3 AI follow-ups | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 18 | green |
+| QSTN-02 | AI compiles domain final answer | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 18 | green |
+| REVW-01 | Reviewer approves compiled answer | review-workflow | e2e | e2e/review.spec.ts | Task 18 | green |
+| REVW-02 | Edit produces AI revision, direct approval | review-workflow | e2e | e2e/review.spec.ts | Task 18 | green |
+| VERS-01 | Draft export carries watermark | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 18 | green |
+| VERS-02 | Complete WISP exports clean | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 18 | green |
 
 Browser-level duplicates (full Playwright coverage, Tasks 17, 18, 20): every scenario above gains an `e2e` row realized as a Playwright spec; the canonical mapping is one spec file per feature (Section 3). Playwright specs assert user-visible outcomes only; exhaustive variants stay at the pytest-bdd level.
 

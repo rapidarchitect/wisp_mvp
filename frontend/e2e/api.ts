@@ -1,4 +1,6 @@
-import { API_BASE, generateTotpCode } from "./helpers";
+import { Page } from "@playwright/test";
+
+import { API_BASE, generateTotpCode, generateTotpCodeFromUri } from "./helpers";
 
 export async function apiCall(path: string, options: RequestInit = {}): Promise<unknown> {
   const response = await fetch(`${API_BASE}/api/v1${path}`, {
@@ -25,5 +27,19 @@ export async function loginDemoAdmin(): Promise<{ token: string }> {
     }),
   });
   return result as { token: string };
+}
+
+export async function loginAsApi(page: Page, email: string, totpUri: string): Promise<void> {
+  const totp = generateTotpCodeFromUri(totpUri);
+  const result = await apiCall("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password: "UserPass123!", totp_code: totp }),
+  });
+  const data = result as { token: string };
+  await page.goto("http://demo.localhost:5173/login");
+  await page.evaluate((token: string) => {
+    localStorage.setItem("wispgen_token", token);
+  }, data.token);
+  await page.goto("http://demo.localhost:5173/");
 }
 

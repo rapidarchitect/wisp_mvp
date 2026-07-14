@@ -59,3 +59,41 @@ async def create_test_user(request: Request, payload: dict) -> dict:
     )
     await db.commit()
     return {"created": True}
+
+
+@router.post("/reset-domain/{code}")
+async def reset_domain(request: Request, code: str) -> dict:
+    """Reset a domain to assigned status and delete answers for E2E isolation."""
+    _require_test_mode()
+    db = get_tenant_db_from_request(request)
+    row = await db.fetchone("SELECT id FROM domains WHERE code = ?", (code,))
+    if not row:
+        raise HTTPException(status_code=404, detail="domain not found")
+    domain_id = row["id"]
+    await db.execute(
+        "DELETE FROM answers WHERE question_id IN (SELECT id FROM questions WHERE domain_id = ?)",
+        (domain_id,),
+    )
+    await db.execute("DELETE FROM compiled_answers WHERE domain_id = ?", (domain_id,))
+    await db.execute(
+        "UPDATE domains SET status = 'assigned' WHERE id = ?",
+        (domain_id,),
+    )
+    await db.commit()
+    return {"reset": True}
+
+
+@router.get("/domains")
+async def list_all_domains(request: Request) -> list[dict]:
+    """Return all domain codes in the current tenant version for E2E helpers."""
+    _require_test_mode()
+    db = get_tenant_db_from_request(request)
+    rows = await db.fetchall(
+        """
+        SELECT d.code, d.status
+        FROM domains d
+        WHERE d.wisp_version_id = (SELECT id FROM wisp_versions ORDER BY number DESC LIMIT 1)
+        ORDER BY d.code
+        """
+    )
+    return [dict(row) for row in rows]

@@ -16,7 +16,7 @@ class FakeLLM(BaseLLM):
     def __init__(
         self,
         responses: dict[str, str] | None = None,
-        default: str = "fake-llm-response",
+        default: str | None = None,
         fail: bool = False,
     ) -> None:
         super().__init__(model="fake/test-model")
@@ -39,7 +39,31 @@ class FakeLLM(BaseLLM):
         for key, response in self._responses.items():
             if key in prompt:
                 return response
-        return self._default
+
+        if self._default is not None:
+            return self._default
+
+        # Deterministic fallback for E2E runs where no explicit default is set.
+        prompt_lower = prompt.lower()
+        followup_keywords = ("follow-up", "followup", "dig deeper")
+        if any(k in prompt_lower for k in followup_keywords):
+            return (
+                "1. What controls enforce the restriction?\n"
+                "2. fake-llm-response\n"
+                "3. How often is access reviewed?"
+            )
+        if "reviewer instruction" in prompt_lower or "rewrite" in prompt_lower:
+            return (
+                "Access Control Policy: contributors answered yes to all questions, "
+                "documented controls in their policy, and included more detail on access logs."
+            )
+        narrative_keywords = ("summarize", "narrative", "paragraph")
+        if any(k in prompt_lower for k in narrative_keywords):
+            return (
+                "Access Control Policy: contributors answered yes to all questions "
+                "and documented controls in their policy."
+            )
+        return "fake-llm-response"
 
     def supports_function_calling(self) -> bool:
         """Return False to keep tests simple."""

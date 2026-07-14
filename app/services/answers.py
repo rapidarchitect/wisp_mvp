@@ -202,7 +202,12 @@ async def save_followup_response(
             "UPDATE answers SET followups_state = 'complete' WHERE id = ?",
             (row["answer_id"],),
         )
-        await db.commit()
+    else:
+        await db.execute(
+            "UPDATE answers SET followups_state = 'pending' WHERE id = ?",
+            (row["answer_id"],),
+        )
+    await db.commit()
 
     return updated
 
@@ -217,7 +222,7 @@ async def get_domain_progress(db: TenantDB, *, user_id: int, code: str) -> dict:
 
     domain = await db.fetchone(
         """
-        SELECT d.*, a.contributor_id
+        SELECT d.*, a.contributor_id, a.reviewer_id
         FROM domains d
         LEFT JOIN domain_assignments a ON a.domain_id = d.id
         WHERE d.wisp_version_id = ? AND d.code = ?
@@ -226,7 +231,8 @@ async def get_domain_progress(db: TenantDB, *, user_id: int, code: str) -> dict:
     )
     if domain is None:
         raise NotFoundError("domain not found")
-    if domain["contributor_id"] != user_id:
+    domain_dict = dict(domain)
+    if domain_dict["contributor_id"] != user_id and domain_dict.get("reviewer_id") != user_id:
         raise ForbiddenError("domain not assigned to this user")
 
     questions = await db.fetchall(
