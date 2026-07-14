@@ -30,6 +30,8 @@
 - `uv run pytest tests/steps -q` → **44 passed**
 - `uv run pytest tests/steps/test_review_workflow.py -q` → **5 passed**
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
+- `npx playwright test e2e/review.spec.ts` → **1 passed**
+- `npx playwright test e2e/review.spec.ts e2e/compilation.spec.ts` → **2 passed**
 - `TESTPLAN.md` statuses updated: **REVW-01..05 green**.
 
 ## Active files of note
@@ -43,6 +45,9 @@
 - `tests/steps/test_review_workflow.py` — BDD step definitions for REVW-01..05.
 - `tests/steps/common_steps.py` — shared notification assertions and assignment upsert; reused by questionnaire and review scenarios.
 - `features/review-workflow.feature` — REVW-01..05 scenarios.
+- `frontend/e2e/review.spec.ts` — Playwright API smoke test for reviewer approval.
+- `frontend/e2e/setup.py` — rewritten to synchronous `sqlite3` so global setup exits cleanly and is idempotent.
+- `frontend/playwright.config.ts` — now only starts the backend; frontend preview removed because current e2e specs are API-only.
 
 ## Known technical notes
 
