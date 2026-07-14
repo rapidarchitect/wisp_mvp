@@ -12,6 +12,7 @@ from app.ai.fakes import FakeLLM
 from app.api.routers.auth import router as auth_router
 from app.api.routers.domain_assignment import router as domain_assignment_router
 from app.api.routers.notifications import router as notifications_router
+from app.api.routers.questionnaire import router as questionnaire_router
 from app.api.routers.questions import domain_router
 from app.api.routers.questions import router as questions_router
 from app.api.routers.signup import router as signup_router
@@ -193,6 +194,7 @@ def app(data_dir, control_db_path, monkeypatch):
     application.include_router(questions_router, prefix="/questions", tags=["questions"])
     application.include_router(domain_router, prefix="/domains", tags=["domains"])
     application.include_router(domain_assignment_router, prefix="/domains", tags=["domains"])
+    application.include_router(questionnaire_router, tags=["questionnaire"])
     application.include_router(
         notifications_router, prefix="/notifications", tags=["notifications"]
     )
