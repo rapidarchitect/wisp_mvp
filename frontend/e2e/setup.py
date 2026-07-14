@@ -20,7 +20,7 @@ _FAKE_QUESTIONS_JSON = (
     '{"text": "Do you have an incident response plan?"},'
     '{"text": "Do you review access logs regularly?"},'
     '{"text": "Do you disable accounts on termination?"}'
-    ']}'
+    "]}"
 )
 from app.db.control import init_control_db  # noqa: E402
 from app.db.tenant import get_tenant_db  # noqa: E402

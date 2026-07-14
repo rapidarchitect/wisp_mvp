@@ -58,9 +58,7 @@ def given_seeded_question(client, context, text, code):
     path = data_dir / "tenants" / "palmetto.db"
     conn = sqlite3.connect(path)
     try:
-        domain_id = conn.execute(
-            "SELECT id FROM domains WHERE code = ?", (code,)
-        ).fetchone()[0]
+        domain_id = conn.execute("SELECT id FROM domains WHERE code = ?", (code,)).fetchone()[0]
         max_pos = conn.execute(
             "SELECT COALESCE(MAX(position), 0) FROM questions WHERE domain_id = ?",
             (domain_id,),
@@ -78,7 +76,7 @@ def given_seeded_question(client, context, text, code):
         conn.close()
 
 
-@given(parsers.parse('the follow-up LLM is configured to fail'))
+@given(parsers.parse("the follow-up LLM is configured to fail"))
 def given_followup_llm_fails(monkeypatch):
     """Make follow-up generation raise on every call."""
     monkeypatch.setattr(

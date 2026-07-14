@@ -34,8 +34,7 @@ async def _seed_db(db: TenantDB):
     )[0]
     version_id = (await db.fetchone("SELECT id FROM wisp_versions WHERE number = 1"))[0]
     await db.execute(
-        "INSERT INTO domains (code, name, wisp_version_id, status) "
-        "VALUES (?, ?, ?, ?)",
+        "INSERT INTO domains (code, name, wisp_version_id, status) VALUES (?, ?, ?, ?)",
         ("AC", "Access Control", version_id, "assigned"),
     )
     await db.commit()

@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
-**Date:** 2026-07-13 23:55 UTC  
+**Date:** 2026-07-14 05:40 UTC  
 **Branch:** `task-12-domain-assignment`  
-**Last completed task:** Task 12 (Domain Assignment + E2E smoke tests)
+**Last completed task:** Task 13 (Contributor Questionnaire Flow)
 
 ## Completed tasks
 
@@ -19,55 +19,54 @@
 | Task 09 | `task-09-domain-seeding` | committed | SeederCrew generates 5-10 yes-no questions per domain, `seed-demo` CLI provisions and seeds demo tenant, LLM outage marks domains `pending_questions` gracefully (C-08, C-19, SEED-01..SEED-03) |
 | Task 10 | `task-10-questions-service` | committed | Admin question add/edit/disable/reinstate, per-domain regeneration guarded by zero answers, shared auth dependencies, atomic validation (C-08, C-16, SEED-04..SEED-06) |
 | Task 11 | `task-11-email-backends` | committed | Notifications service, in-app feed endpoint, console/SES email backends with singleton factory, `notify()` wired into invitations, role changes, and deactivation (Task 11 scenario-exempt) |
-| Task 12 | `task-12-domain-assignment` | committed (current branch) | Domain assignment service/router, exactly one contributor + one reviewer per domain, role-scoped visibility, admin gap flag, BDD scenarios ASSN-01..05 green, Playwright API smoke tests (C-10) |
+| Task 12 | `task-12-domain-assignment` | committed | Domain assignment service/router, exactly one contributor + one reviewer per domain, role-scoped visibility, admin gap flag, BDD scenarios ASSN-01..05 green, Playwright API smoke tests (C-10) |
+| Task 13 | `task-12-domain-assignment` | committed (current branch) | Contributor questionnaire flow: `save_answer`, `save_followup_response`, `get_domain_progress`, `FollowUpCrew` with cap and retry, AI outage waiver (C-09, C-11, C-19), QSTN-01/04/05/06 green, Playwright API smoke test |
 
 ## Current verification
 
-- `uv run pytest tests/ -q` → **111 passed**
-- `uv run pytest tests/steps -q` → **33 passed**
-- `uv run pytest tests/unit/test_services_domain_assignment.py tests/unit/test_routers_domain_assignment.py -q` → **19 passed**
+- `uv run pytest tests/ -q` → **119 passed**
+- `uv run pytest tests/steps -q` → **37 passed**
+- `uv run pytest tests/unit/test_services_answers.py tests/unit/test_routers_questionnaire.py tests/unit/test_followups_service.py tests/unit/test_followup_crew.py -q` → **17 passed**
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
-- `uv run pytest --cov=app/services --cov-report=term-missing tests/unit -q` → **88.44% ≥ 85%**
-- `npm run test:e2e` (with backend/frontend running) → **7 passed**
-- `TESTPLAN.md` statuses updated: SIGN-01..05, AUTH-01..07, USER-01..06, SEED-01..06, **ASSN-01..05 green**.
+- `npm run test:e2e -- questionnaire.spec.ts` (with backend running, `LLM_PROVIDER=fake`) → **1 passed**
+- `TESTPLAN.md` statuses updated: SIGN-01..05, AUTH-01..07, USER-01..06, SEED-01..06, ASSN-01..05, **QSTN-01/04/05/06 green**.
 
 ## Active files of note
 
-- `app/services/domain_assignment.py` — `assign_domain`, `get_unassigned_domains`, `list_user_assignments`.
-- `app/api/routers/domain_assignment.py` — `/domains/{code}/assign`, `/domains/unassigned`, `/domains/assigned`.
-- `app/models/domain_assignment.py` — `AssignDomainRequest`.
-- `tests/unit/test_services_domain_assignment.py` — unit tests for validation, replacement, audit, notifications, answer preservation.
-- `tests/unit/test_routers_domain_assignment.py` — router auth/response tests.
-- `tests/steps/test_domain_assignment.py` — BDD step definitions for ASSN-01..05.
-- `tests/steps/common_steps.py` — shared cross-feature Givens.
-- `features/domain-assignment.feature` — ASSN-01..05 scenarios.
-- `frontend/e2e/domain-assignment.spec.ts` — Playwright API smoke tests for assignment.
-- `frontend/e2e/setup.py` — seeds demo tenant + deterministic test users for e2e.
-- `app/ai/llm_factory.py` — default Ollama model changed to `ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0`.
+- `app/services/answers.py` — answer persistence, follow-up orchestration, progress, AI outage fallback.
+- `app/services/followups.py` — follow-up persistence helpers.
+- `app/crews/followup_crew.py` — generates up to 3 follow-up questions with one retry.
+- `app/api/routers/questionnaire.py` — `/questions/{id}/answer`, `/followups/{id}/respond`, `/domains/{code}/progress`.
+- `app/services/notification_templates.py` — `answer_saved`, `followups_waived` templates.
+- `tests/unit/test_services_answers.py` — unit tests for answer lifecycle, skip blocking, AI outage waiver, submit readiness.
+- `tests/unit/test_routers_questionnaire.py` — router auth/response tests.
+- `tests/unit/test_followups_service.py` — follow-up persistence unit tests.
+- `tests/unit/test_followup_crew.py` — follow-up generation and retry unit tests.
+- `tests/steps/test_contributor_questionnaire.py` — BDD step definitions for QSTN-01/04/05/06.
+- `features/contributor-questionnaire.feature` — QSTN-01/04/05/06 scenarios.
+- `frontend/e2e/questionnaire.spec.ts` — Playwright API smoke test for the questionnaire flow.
+- `frontend/e2e/setup.py` — seeds demo tenant with deterministic fake questions for e2e.
 
 ## Known technical notes
 
 - BDD step functions are **synchronous** and use `sqlite3` for direct DB assertions, plus `TestClient` for HTTP.
 - Cross-feature Givens live in `tests/steps/common_steps.py`; `tests/conftest.py` registers them via `pytest_plugins`.
 - `tests/steps/helpers.py` holds shared step utilities like `_tenant_db_path`.
-- Assignment audit event is written inside the immediate transaction; notifications are sent after commit so email failures do not roll back the assignment.
-- E2E tests run against `demo.localhost:8000` with `Host` header; test users use `@demo.example.com` emails to satisfy Pydantic `EmailStr` while tenant resolution stays based on `Host`.
+- Answer service writes audit events inside the immediate transaction; notifications are sent after commit so email failures do not roll back the answer.
+- E2E tests run against `demo.localhost:8000` with `Host` header; the backend must be started with `LLM_PROVIDER=fake` for deterministic follow-up generation.
+- When follow-up generation returns an empty list, the answer is marked `complete` immediately so contributors are not blocked.
+- When follow-up generation fails after one retry, the answer's `followups_state` is set to `waived`, a notification is created, and the answer is treated as complete for submission (C-19).
 
-## Next task: Task 13
+## Next task: Task 14
 
-**Objective:** Contributor questionnaire flow (QSTN-01, QSTN-04, QSTN-05, QSTN-06, C-09, C-11, C-19) — answer capture, up to 3 AI follow-ups, skip behavior that blocks submission, save/resume, AI outage fallback.
-
-**Files likely to create/modify (per master plan):**
-- `app/crews/followup_crew.py`, `app/services/answers.py`, `app/services/followups.py`, `app/api/routers/questionnaire.py`
-- `tests/unit/test_services_answers.py`, `tests/steps/test_contributor_questionnaire.py`
-- Modify `features/contributor-questionnaire.feature` (requires explicit approval)
+**Objective:** Review workflow (QSTN-02, QSTN-03, REVW-01..05) — AI compilation of domain answers, contributor submission, reviewer approval/deferral, self-review warning, WISP completion.
 
 **Key constraints:**
-- Each answer triggers up to 3 AI-generated follow-up questions.
-- Skipped questions defer the answer but block final domain submission.
-- Contributor can save progress and resume exactly.
-- LLM outage falls back to plain answer without crashing (C-19).
+- Contributor can compile and submit a domain for review once all questions are answered/skipped appropriately.
+- Reviewer can approve, request revision, or defer.
+- Direct approval by the same contributor is allowed with a warning.
+- All 14 domains approved completes the WISP.
 
 **Verification target:**
-- `uv run pytest tests/steps/test_contributor_questionnaire.py -q -k "QSTN-01 or QSTN-04 or QSTN-05 or QSTN-06"` green.
+- QSTN-02, QSTN-03, REVW-01..05 green.
 - Coverage on `app/services` ≥ 85%.
