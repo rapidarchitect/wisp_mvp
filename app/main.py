@@ -1,6 +1,6 @@
 """WISPGen FastAPI application entry point."""
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.routers.auth import router as auth_router
@@ -12,6 +12,7 @@ from app.api.routers.questions import domain_router as domains_router
 from app.api.routers.questions import router as questions_router
 from app.api.routers.review import router as review_router
 from app.api.routers.signup import router as signup_router
+from app.api.routers.test import router as test_router
 from app.api.routers.users import router as users_router
 from app.api.routers.versions import router as versions_router
 from app.config import settings
@@ -31,6 +32,7 @@ app.state.data_dir = settings.data_dir
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(signup_router, prefix="/signup", tags=["signup"])
+app.include_router(test_router, prefix="/test", tags=["test"])
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(questions_router, prefix="/questions", tags=["questions"])
 app.include_router(domains_router, prefix="/domains", tags=["domains"])
@@ -40,6 +42,23 @@ app.include_router(compilation_router, tags=["compilation"])
 app.include_router(review_router, tags=["review"])
 app.include_router(versions_router, tags=["versions"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
+
+# Duplicate all API routes under /api/v1 for the React frontend, while keeping
+# root mounts for existing BDD and unit tests.
+api_v1_router = APIRouter()
+api_v1_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_v1_router.include_router(signup_router, prefix="/signup", tags=["signup"])
+api_v1_router.include_router(test_router, prefix="/test", tags=["test"])
+api_v1_router.include_router(users_router, prefix="/users", tags=["users"])
+api_v1_router.include_router(questions_router, prefix="/questions", tags=["questions"])
+api_v1_router.include_router(domains_router, prefix="/domains", tags=["domains"])
+api_v1_router.include_router(domain_assignment_router, prefix="/domains", tags=["domains"])
+api_v1_router.include_router(questionnaire_router, tags=["questionnaire"])
+api_v1_router.include_router(compilation_router, tags=["compilation"])
+api_v1_router.include_router(review_router, tags=["review"])
+api_v1_router.include_router(versions_router, tags=["versions"])
+api_v1_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
+app.include_router(api_v1_router, prefix="/api/v1")
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.
 app.add_middleware(

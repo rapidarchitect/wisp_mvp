@@ -193,24 +193,52 @@ async def login(
         raise AuthorizationError("Invalid credentials", code="invalid_credentials")
 
     if not user.get("totp_enrolled"):
-        secret = generate_totp_secret()
-        provisioning_uri = get_provisioning_uri(secret, email, totp_issuer)
+        # First contact: issue a new secret and ask the user to enroll.
+        if not totp_code:
+            secret = generate_totp_secret()
+            provisioning_uri = get_provisioning_uri(secret, email, totp_issuer)
+            await db.execute(
+                "UPDATE users SET totp_secret = ? WHERE id = ?",
+                (secret, user["id"]),
+            )
+            await db.commit()
+            await audit(
+                db,
+                actor_user_id=user["id"],
+                event_type="totp_enrollment_required",
+                subject=email,
+            )
+            return {
+                "status": "enrollment_required",
+                "secret": secret,
+                "provisioning_uri": provisioning_uri,
+            }
+
+        # Enrollment completion: verify the provided code, mark enrolled, and log in.
+        if not verify_totp(user["totp_secret"], totp_code):
+            await record_failed_login(db, user)
+            await audit(
+                db,
+                actor_user_id=user["id"],
+                event_type="login_failed",
+                subject=email,
+                detail="invalid_totp",
+            )
+            raise AuthorizationError("Invalid credentials", code="invalid_credentials")
+
         await db.execute(
-            "UPDATE users SET totp_secret = ? WHERE id = ?",
-            (secret, user["id"]),
+            "UPDATE users SET totp_enrolled = 1 WHERE id = ?",
+            (user["id"],),
         )
-        await db.commit()
+        await reset_failed_attempts(db, user["id"])
+        token = await create_session(db, user["id"])
         await audit(
             db,
             actor_user_id=user["id"],
-            event_type="totp_enrollment_required",
+            event_type="login_succeeded",
             subject=email,
         )
-        return {
-            "status": "enrollment_required",
-            "secret": secret,
-            "provisioning_uri": provisioning_uri,
-        }
+        return {"status": "session", "token": token}
 
     if totp_code is None or not verify_totp(user["totp_secret"], totp_code):
         await record_failed_login(db, user)

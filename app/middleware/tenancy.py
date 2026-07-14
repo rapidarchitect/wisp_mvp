@@ -33,8 +33,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Signup routes target the to-be-created workspace subdomain and must
-        # not require an existing tenant record.
-        if request.url.path.startswith("/signup"):
+        # not require an existing tenant record. Both the legacy root mount and
+        # the /api/v1 prefix used by the React frontend are allowed.
+        if request.url.path.startswith("/signup") or request.url.path.startswith("/api/v1/signup"):
             request.state.tenant = None
             request.state.tenant_slug = slug
             request.state.tenant_db = None

@@ -99,6 +99,10 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | VERS-03 | New version clones approved baseline | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
 | VERS-04 | Only one version in progress | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
 | VERS-05 | Prior versions remain exportable | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
+| SIGN-01 | Card signup provisions workspace | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 17 | green |
+| AUTH-01 | First login requires TOTP enrollment | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
+| AUTH-02 | Login with password and TOTP | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
+| USER-02 | Invited user activates account | user-and-role-management | e2e | e2e/activate.spec.ts | Task 17 | green |
 
 Browser-level duplicates (full Playwright coverage, Tasks 17, 18, 20): every scenario above gains an `e2e` row realized as a Playwright spec; the canonical mapping is one spec file per feature (Section 3). Playwright specs assert user-visible outcomes only; exhaustive variants stay at the pytest-bdd level.
 

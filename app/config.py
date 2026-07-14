@@ -26,6 +26,7 @@ class Settings(BaseModel):
     ses_region: str = Field(default="us-east-1", alias="SES_REGION")
     email_from: str = Field(default="noreply@app.wisp.llc", alias="EMAIL_FROM")
     email_backend: str = Field(default="console", alias="EMAIL_BACKEND")
+    enable_test_endpoints: bool = Field(default=False, alias="WISPGEN_ENABLE_TEST_ENDPOINTS")
 
 
 def get_settings() -> Settings:
