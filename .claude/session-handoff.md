@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
-**Date:** 2026-07-13 12:30 UTC  
-**Branch:** `task-11-email-backends`  
-**Last completed task:** Task 11 (Notifications)
+**Date:** 2026-07-13 23:55 UTC  
+**Branch:** `task-12-domain-assignment`  
+**Last completed task:** Task 12 (Domain Assignment + E2E smoke tests)
 
 ## Completed tasks
 
@@ -18,51 +18,56 @@
 | Task 08 | `task-08-llm-factory` | committed | Configurable LLM factory, crew retry base with exponential backoff, Tavily tool wrapper, deterministic fake doubles (C-19) |
 | Task 09 | `task-09-domain-seeding` | committed | SeederCrew generates 5-10 yes-no questions per domain, `seed-demo` CLI provisions and seeds demo tenant, LLM outage marks domains `pending_questions` gracefully (C-08, C-19, SEED-01..SEED-03) |
 | Task 10 | `task-10-questions-service` | committed | Admin question add/edit/disable/reinstate, per-domain regeneration guarded by zero answers, shared auth dependencies, atomic validation (C-08, C-16, SEED-04..SEED-06) |
-| Task 11 | `task-11-email-backends` | committed (current branch) | Notifications service, in-app feed endpoint, console/SES email backends with singleton factory, `notify()` wired into invitations, role changes, and deactivation (Task 11 scenario-exempt) |
+| Task 11 | `task-11-email-backends` | committed | Notifications service, in-app feed endpoint, console/SES email backends with singleton factory, `notify()` wired into invitations, role changes, and deactivation (Task 11 scenario-exempt) |
+| Task 12 | `task-12-domain-assignment` | committed (current branch) | Domain assignment service/router, exactly one contributor + one reviewer per domain, role-scoped visibility, admin gap flag, BDD scenarios ASSN-01..05 green, Playwright API smoke tests (C-10) |
 
 ## Current verification
 
-- `uv run pytest tests/ -q` → **all green**
-- `uv run pytest tests/steps -q` → **all green**
-- `uv run pytest tests/unit/test_services_notifications.py tests/unit/test_routers_notifications.py -q` → **all green**
+- `uv run pytest tests/ -q` → **111 passed**
+- `uv run pytest tests/steps -q` → **33 passed**
+- `uv run pytest tests/unit/test_services_domain_assignment.py tests/unit/test_routers_domain_assignment.py -q` → **19 passed**
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
-- `uv run pytest --cov=app/services --cov-report=term-missing tests/unit/test_services_notifications.py` → **93%+ coverage**
-- `TESTPLAN.md` statuses updated: SIGN-01..05, AUTH-01..07, USER-01..06, SEED-01..06 green; Task 11 covered as cross-cutting notification service.
+- `uv run pytest --cov=app/services --cov-report=term-missing tests/unit -q` → **88.44% ≥ 85%**
+- `npm run test:e2e` (with backend/frontend running) → **7 passed**
+- `TESTPLAN.md` statuses updated: SIGN-01..05, AUTH-01..07, USER-01..06, SEED-01..06, **ASSN-01..05 green**.
 
 ## Active files of note
 
-- `app/services/notifications.py` — `notify()`, `get_notifications()`, `mark_read()`, dual-channel dispatch (in-app + email).
-- `app/services/email_backends.py` — `ConsoleEmailBackend`, `SESEmailBackend`, singleton `get_email_backend()`, `reset_email_backend()` for tests.
-- `app/api/routers/notifications.py` — `/notifications` feed and `/notifications/{id}/read` endpoints.
-- `app/models/notification.py` — `NotificationCreate`, `NotificationOut`, `NotificationList`.
-- `tests/unit/test_services_notifications.py` — unit tests for service, backends, SES error wrapping, singleton factory.
-- `tests/unit/test_routers_notifications.py` — router-level feed/mark-read tests via `TestClient`.
-- `app/services/invitations.py`, `app/services/users.py` — wired to call `notify()` on invite, role change, deactivation.
-- `tests/steps/conftest.py` — mounts notifications router, clears captured console emails.
+- `app/services/domain_assignment.py` — `assign_domain`, `get_unassigned_domains`, `list_user_assignments`.
+- `app/api/routers/domain_assignment.py` — `/domains/{code}/assign`, `/domains/unassigned`, `/domains/assigned`.
+- `app/models/domain_assignment.py` — `AssignDomainRequest`.
+- `tests/unit/test_services_domain_assignment.py` — unit tests for validation, replacement, audit, notifications, answer preservation.
+- `tests/unit/test_routers_domain_assignment.py` — router auth/response tests.
+- `tests/steps/test_domain_assignment.py` — BDD step definitions for ASSN-01..05.
+- `tests/steps/common_steps.py` — shared cross-feature Givens.
+- `features/domain-assignment.feature` — ASSN-01..05 scenarios.
+- `frontend/e2e/domain-assignment.spec.ts` — Playwright API smoke tests for assignment.
+- `frontend/e2e/setup.py` — seeds demo tenant + deterministic test users for e2e.
+- `app/ai/llm_factory.py` — default Ollama model changed to `ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0`.
 
 ## Known technical notes
 
 - BDD step functions are **synchronous** and use `sqlite3` for direct DB assertions, plus `TestClient` for HTTP.
-- `get_email_backend()` caches the backend instance by type; `reset_email_backend()` clears the cache for tests and runtime backend switches.
-- SES backend uses `boto3.client` and `asyncio.to_thread`; errors are wrapped as `ExternalServiceError`.
-- All LLM/Tavily calls in the test suite use fakes; no real model or network is invoked.
-- The `provisioned_tenant` fixture does **not** eagerly seed domains, preserving SEED-01..03 semantics.
+- Cross-feature Givens live in `tests/steps/common_steps.py`; `tests/conftest.py` registers them via `pytest_plugins`.
+- `tests/steps/helpers.py` holds shared step utilities like `_tenant_db_path`.
+- Assignment audit event is written inside the immediate transaction; notifications are sent after commit so email failures do not roll back the assignment.
+- E2E tests run against `demo.localhost:8000` with `Host` header; test users use `@demo.example.com` emails to satisfy Pydantic `EmailStr` while tenant resolution stays based on `Host`.
 
-## Next task: Task 12
+## Next task: Task 13
 
-**Objective:** Domain Assignment (ASSN-01..ASSN-05, C-10) — assign one contributor and one reviewer per domain, enforce single assignee per role, preserve answers on reassignment, restrict contributor visibility to assigned domains, and surface unassigned domains to admin.
+**Objective:** Contributor questionnaire flow (QSTN-01, QSTN-04, QSTN-05, QSTN-06, C-09, C-11, C-19) — answer capture, up to 3 AI follow-ups, skip behavior that blocks submission, save/resume, AI outage fallback.
 
 **Files likely to create/modify (per master plan):**
-- `app/services/domain_assignment.py`, `app/api/routers/domain_assignment.py`, `tests/unit/test_services_domain_assignment.py`
-- Modify `app/db/schema/tenant.sql`, `app/main.py`, `features/domain-assignment.feature`, `tests/steps/test_domain_assignment.py`
+- `app/crews/followup_crew.py`, `app/services/answers.py`, `app/services/followups.py`, `app/api/routers/questionnaire.py`
+- `tests/unit/test_services_answers.py`, `tests/steps/test_contributor_questionnaire.py`
+- Modify `features/contributor-questionnaire.feature` (requires explicit approval)
 
 **Key constraints:**
-- Exactly one contributor and one reviewer per domain at any time.
-- Reassignment updates assignments but preserves existing answers and compiled text.
-- Contributors list only domains assigned to them; reviewers similarly.
-- Admin dashboard endpoint lists domains with missing assignments.
+- Each answer triggers up to 3 AI-generated follow-up questions.
+- Skipped questions defer the answer but block final domain submission.
+- Contributor can save progress and resume exactly.
+- LLM outage falls back to plain answer without crashing (C-19).
 
 **Verification target:**
-- `uv run pytest tests/steps/test_domain_assignment.py -q` green.
-- `uv run pytest tests/unit/test_services_domain_assignment.py -q` green.
+- `uv run pytest tests/steps/test_contributor_questionnaire.py -q -k "QSTN-01 or QSTN-04 or QSTN-05 or QSTN-06"` green.
 - Coverage on `app/services` ≥ 85%.
