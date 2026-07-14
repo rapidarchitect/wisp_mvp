@@ -33,3 +33,8 @@ npx playwright test e2e/<flow>.spec.ts
 - `AGENTS.md` — OpenCode session guidance
 - `AGENT.md` — bootstrap prompt
 - `docs/superpowers/plans/2026-07-12-wispgen-master-plan.md` — implementation master plan
+
+## Deployment
+
+See `infra/README.md` for Terraform, nginx, certbot, and EC2 deployment instructions.
+

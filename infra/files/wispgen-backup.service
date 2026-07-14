@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup WISPGen tenant databases to S3
+
+[Service]
+Type=oneshot
+User=wispgen
+Group=wispgen
+ExecStart=/srv/wispgen/src/infra/files/wispgen-backup.sh

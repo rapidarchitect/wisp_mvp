@@ -1,0 +1,17 @@
+[Unit]
+Description=WISPGen FastAPI backend
+After=network.target
+
+[Service]
+Type=simple
+User=wispgen
+Group=wispgen
+WorkingDirectory=/srv/wispgen/src
+EnvironmentFile=/srv/wispgen/env/wispgen.env
+ExecStart=/srv/wispgen/src/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
-**Date:** 2026-07-14  
-**Branch:** `task-16-versioning-export`  
-**Last completed task:** Task 16 (Versioning and PDF Export) — VERS-01..05 green, tests and lint clean.
+**Date:** 2026-07-14
+**Branch:** `task-18-contributor-reviewer-ui`
+**Last completed task:** Task 18 (React Contributor/Reviewer UI) — QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 E2E green; tests and lint clean.
 
 ## Completed tasks
 
@@ -23,46 +23,52 @@
 | Task 13 | `task-13-questionnaire-flow` | committed | Contributor questionnaire flow: `save_answer`, `save_followup_response`, `get_domain_progress`, `FollowUpCrew` with cap and retry, AI outage waiver (C-09, C-11, C-19), QSTN-01/04/05/06 green, Playwright API smoke test |
 | Task 14 | `task-14-compilation-submission` | committed on `main` | CompilerCrew, compilation/submission service, compile/submit endpoints, BDD QSTN-02/03 green, Playwright compile+submit smoke (C-12, C-19) |
 | Task 15 | `task-15-review-workflow` | committed | RevisionCrew, review service, approve/revise/defer endpoints, REVW-01..05 green, notification templates for `domain_approved`, `domain_revised_and_approved`, `domain_deferred`, `wisp_complete`, Playwright review smoke |
-| Task 16 | `task-16-versioning-export` | current branch | PDF export via fpdf2, version lifecycle service, version/export router, VERS-01..05 green (C-13, C-14, C-15) |
+| Task 16 | `task-16-versioning-export` | committed | PDF export via fpdf2, version lifecycle service, version/export router, VERS-01..05 green (C-13, C-14, C-15) |
+| Task 17 | `task-17-frontend-auth-dashboards` | committed | React auth, onboarding, dashboards; E2E SIGN-01, AUTH-01, AUTH-02, USER-02 green |
+| Task 18 | `task-18-contributor-reviewer-ui` | current branch | Contributor questionnaire page, reviewer queue/review page, admin versions/export page; E2E QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 green |
 
 ## Current verification
 
-- `uv run pytest tests/ -q` → **155 passed, 1 skipped**
+- `uv run pytest tests/ -q` → **237 passed, 1 skipped**
 - `uv run pytest tests/steps -q` → **49 passed**
-- `uv run pytest tests/steps/test_wisp_versioning_and_export.py -q` → **5 passed**
-- `uv run pytest tests/unit -q` → **94 passed, 1 skipped**
-- `uv run pytest --cov=app --cov-report=term-missing tests/unit -q` → **88.81% total**, `app/services` ≥85%
-- `uv run ruff check . && uv run ruff format --check .` → **clean**
-- `TESTPLAN.md` statuses updated: **VERS-01..05 green**.
+- `uv run pytest tests/unit -q` → **188 passed, 1 skipped**
+- `uv run ruff check .` → **clean**
+- `npm run build` → **clean** (chunk-size warning only)
+- `npx playwright test e2e/questionnaire.spec.ts e2e/review.spec.ts e2e/versions.spec.ts` → **5 passed**
+- `TESTPLAN.md` statuses updated: **QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 E2E rows green**.
 
 ## Active files of note
 
-- `app/services/pdf.py` — `render_wisp_pdf()` using fpdf2; DRAFT watermark gated by `include_draft` (C-13).
-- `app/services/versions.py` — `start_new_version`, `get_current_version`, `list_versions`; single-in-progress guard (C-14); clones approved domains/compiled answers/assignments to new version (C-15).
-- `app/api/routers/versions.py` — `GET /versions`, `GET /versions/current/export`, `GET /versions/{number}/export`, `POST /versions`.
-- `tests/unit/test_services_pdf.py`, `tests/unit/test_services_versions.py`, `tests/unit/test_routers_versions.py` — unit coverage.
-- `tests/steps/test_wisp_versioning_and_export.py` — BDD step definitions for VERS-01..05.
-- `features/wisp-versioning-and-export.feature` — VERS-01..05 scenarios.
-- `pyproject.toml`/`uv.lock` — added `fpdf2` and `pdfminer.six` (dev).
+- `frontend/src/pages/ContributorDomainsPage.tsx` — contributor's assigned domain list.
+- `frontend/src/pages/DomainQuestionnairePage.tsx` — answer questions, follow-ups, compile, submit.
+- `frontend/src/pages/ReviewerDomainsPage.tsx` — review queue for reviewer.
+- `frontend/src/pages/ReviewDomainPage.tsx` — approve, defer, or revise-and-approve a domain.
+- `frontend/src/pages/AdminVersionsPage.tsx` — version list and PDF export.
+- `frontend/e2e/questionnaire.spec.ts` — QSTN-01, QSTN-02 E2E.
+- `frontend/e2e/review.spec.ts` — REVW-01, REVW-02 E2E.
+- `frontend/e2e/versions.spec.ts` — VERS-01, VERS-02 E2E.
+- `frontend/e2e/api.ts` — `loginAsApi` helper for JWT seeding via API.
+- `app/api/routers/test.py` — test-only reset/list endpoints for E2E isolation.
+- `app/services/answers.py` — reviewer allowed to read domain progress; fixed `sqlite3.Row` dict access.
+- `app/ai/fakes.py` — `FakeLLM` preserves explicit `default` and provides deterministic E2E fallbacks.
+- `frontend/e2e/setup.py` — idempotent demo seed with answer/assignment reset.
 
 ## Known technical notes
 
-- WeasyPrint was approved but could not import on macOS without system Pango libraries, so I switched to **fpdf2** with your approval. PDF text-layer assertions use `pdfminer.six`.
-- `render_wisp_pdf` accepts an explicit `company_name` from the router because tenant company name lives in the control DB, not the tenant DB vitals table.
-- `start_new_version` refuses to create a second version while any version is `in_progress` (C-14).
-- Prior completed versions remain readable and exportable via `/versions/{number}/export` (C-15).
-- Reviewer approve/revise/defer steps were moved to `tests/steps/common_steps.py` with both `@given` and `@when` decorators so they can be reused across `review-workflow` and `wisp-versioning-and-export` features.
+- E2E tests now log in via API and set `wispgen_token` in `localStorage` to avoid TOTP clock drift during long setup sequences.
+- VERS-02 E2E resets, assigns, submits, and approves all 14 domains via API to drive the version status to `complete`.
+- Test-only endpoints are gated by `settings.enable_test_endpoints` (enabled in Playwright config via `WISP_ENV=test`).
 
-## Next task: Task 17
+## Next task: Task 19
 
-**Objective:** React frontend: auth, onboarding, dashboards — E2E coverage of SIGN-01, AUTH-01, AUTH-02, USER-02.
+**Objective:** Production infrastructure — Terraform, nginx, certbot, Docker, AWS deployment.
 
 **Key constraints:**
-- Signup wizard collects corporate vitals per the field list.
-- Login + TOTP screens.
-- Role-aware dashboards with KPIs and progress.
-- Generated API types from the running dev API.
+- Infrastructure as code in `infra/`.
+- Docker multi-stage build for the backend.
+- nginx reverse proxy with Let's Encrypt (certbot).
+- AWS ECS/Fargate or EC2 deployment path.
 
 **Verification target:**
-- `npm run gen:api` against running dev API.
-- `npm run test` and `npx playwright test frontend/e2e/signup.spec.ts frontend/e2e/auth.spec.ts frontend/e2e/users.spec.ts` green.
+- `docker build -t wispgen -f infra/Dockerfile .` succeeds.
+- `terraform plan` from `infra/terraform/` succeeds (dry-run).
