@@ -112,8 +112,9 @@ async def revise_and_approve(
     if domain["status"] != "in_review":
         raise ConflictError("domain is not in review", code="domain_not_in_review")
 
+    contributor_id = domain["contributor_id"]
     questions = await compilation_service.load_answered_questions(
-        db, domain_id=domain["id"], contributor_id=domain["contributor_id"]
+        db, domain_id=domain["id"], contributor_id=contributor_id
     )
     conversation = [
         {
@@ -163,8 +164,17 @@ async def revise_and_approve(
         commit=False,
     )
 
-    # Reuse approve logic after persisting the revision.
-    return await approve_domain(db, reviewer_id=reviewer_id, code=code)
+    # Reuse approval state transition and audit after persisting the revision,
+    # but send the distinct revised-and-approved notification.
+    approve_result = await approve_domain(db, reviewer_id=reviewer_id, code=code)
+    await notify(
+        db,
+        user_id=domain["contributor_id"],
+        kind="domain_revised_and_approved",
+        payload={"domain_name": domain["name"]},
+        channel="in_app",
+    )
+    return approve_result
 
 
 async def defer_domain(

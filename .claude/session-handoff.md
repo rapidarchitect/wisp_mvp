@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
 **Date:** 2026-07-14  
-**Branch:** `task-14-compilation-submission`  
-**Last completed task:** Task 14 (Compilation and Submission)
+**Branch:** `task-15-review-workflow`  
+**Last completed task:** Task 15 (Review Workflow) — BDD scenarios REVW-01..05 green, tests and lint clean.
 
 ## Completed tasks
 
@@ -21,51 +21,46 @@
 | Task 11 | `task-11-email-backends` | committed | Notifications service, in-app feed endpoint, console/SES email backends with singleton factory, `notify()` wired into invitations, role changes, and deactivation (Task 11 scenario-exempt) |
 | Task 12 | `task-12-domain-assignment` | committed | Domain assignment service/router, exactly one contributor + one reviewer per domain, role-scoped visibility, admin gap flag, BDD scenarios ASSN-01..05 green, Playwright API smoke tests (C-10) |
 | Task 13 | `task-13-questionnaire-flow` | committed | Contributor questionnaire flow: `save_answer`, `save_followup_response`, `get_domain_progress`, `FollowUpCrew` with cap and retry, AI outage waiver (C-09, C-11, C-19), QSTN-01/04/05/06 green, Playwright API smoke test |
-| Task 14 | `task-14-compilation-submission` | current branch | CompilerCrew, compilation/submission service, compile/submit endpoints, BDD QSTN-02/03 green, Playwright compile+submit smoke (C-12, C-19) |
+| Task 14 | `task-14-compilation-submission` | committed on `main` | CompilerCrew, compilation/submission service, compile/submit endpoints, BDD QSTN-02/03 green, Playwright compile+submit smoke (C-12, C-19) |
+| Task 15 | `task-15-review-workflow` | current branch | RevisionCrew, review service, approve/revise/defer endpoints, REVW-01..05 green, notification templates for `domain_approved`, `domain_revised_and_approved`, `domain_deferred`, `wisp_complete` |
 
 ## Current verification
 
-- `uv run pytest tests/ -q` → **126 passed**
-- `uv run pytest tests/steps -q` → **39 passed**
-- `uv run pytest tests/unit/test_compiler_crew.py tests/unit/test_services_compilation.py tests/unit/test_routers_compilation.py tests/unit/test_notification_templates.py -q` → **15 passed**
+- `uv run pytest tests/ -q` → **145 passed**
+- `uv run pytest tests/steps -q` → **44 passed**
+- `uv run pytest tests/steps/test_review_workflow.py -q` → **5 passed**
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
-- Playwright `compilation.spec.ts` (with backend running `LLM_PROVIDER=fake`) → **1 passed**
-- `TESTPLAN.md` statuses updated: **QSTN-02/03 green**.
+- `TESTPLAN.md` statuses updated: **REVW-01..05 green**.
 
 ## Active files of note
 
-- `app/crews/compiler_crew.py` — generates domain narrative from questions, answers, and follow-up responses.
-- `app/services/compilation.py` — `compile_domain` and `submit_domain` with C-12/C-19 enforcement.
-- `app/api/routers/compilation.py` — `POST /domains/{code}/compile`, `POST /domains/{code}/submit`.
-- `app/main.py` — registers compilation router.
-- `app/exceptions.py` — `ExternalServiceError` now accepts `code`.
-- `app/services/notification_templates.py` — `domain_submitted` template (pre-existing, now covered by unit test).
-- `tests/unit/test_compiler_crew.py` — unit tests for narrative generation and retry behavior.
-- `tests/unit/test_services_compilation.py` — unit tests for compile/submit preconditions and notifications.
-- `tests/unit/test_routers_compilation.py` — router auth and compile+submit flow tests.
-- `tests/unit/conftest.py` — standalone unit-test app fixture including compilation router.
-- `tests/steps/test_contributor_questionnaire.py` — added QSTN-02/03 step definitions and compiler fake fixture.
-- `tests/steps/conftest.py` — mounts compilation router in BDD app fixture.
-- `features/contributor-questionnaire.feature` — QSTN-02/03 scenarios.
-- `frontend/e2e/compilation.spec.ts` — Playwright API smoke test for compile + submit.
-- `frontend/playwright.config.ts` — starts dev backend with `LLM_PROVIDER=fake`.
+- `app/crews/revision_crew.py` — deterministic fake LLM-friendly revision of a compiled narrative from a reviewer prompt.
+- `app/services/review.py` — `approve_domain`, `revise_and_approve`, `defer_domain`, self-review warning, and `_maybe_complete_version`.
+- `app/api/routers/review.py` — `POST /domains/{code}/approve`, `/revise`, `/defer`.
+- `app/services/notification_templates.py` — added templates for review workflow notifications.
+- `app/services/compilation.py` — `load_answered_questions` is now public for reuse by the revision service.
+- `tests/unit/test_revision_crew.py`, `tests/unit/test_services_review.py`, `tests/unit/test_routers_review.py` — unit coverage.
+- `tests/steps/test_review_workflow.py` — BDD step definitions for REVW-01..05.
+- `tests/steps/common_steps.py` — shared notification assertions and assignment upsert; reused by questionnaire and review scenarios.
+- `features/review-workflow.feature` — REVW-01..05 scenarios.
 
 ## Known technical notes
 
-- `compile_domain` checks that every enabled question is answered, not skipped, and followups_state is `complete` or `waived`. It raises `ExternalServiceError(llm_unavailable)` on LLM failure without changing domain state (C-19).
-- `submit_domain` requires `submit_ready == True` and a compiled answer, then transitions the domain to `in_review` (C-12) and notifies the reviewer.
-- BDD step functions are synchronous and use `sqlite3` for direct DB assertions, plus `TestClient` for HTTP.
-- E2E tests run against `demo.localhost:8000` with `Host` header; the backend must be started with `LLM_PROVIDER=fake` for deterministic compilation.
-- A flaky TOTP timing failure in `test_assn02` was observed once during full suite run but passed on rerun and in isolation; no regression caused by Task 14.
+- `revise_and_approve` persists the AI-generated revision to `compiled_answers`, audits `domain_revised`, transitions the domain to `approved`, and sends `domain_revised_and_approved` to the contributor.
+- `approve_domain` allows a reviewer who is also the contributor to approve, but returns `self_review: true` in the response.
+- `_maybe_complete_version` checks whether every domain in the version is approved; if so it marks the version `complete` and notifies the admin.
+- `given_domain_assigned` now uses `ON CONFLICT(domain_id) DO UPDATE` so scenarios can reassign the same domain for self-review tests.
+- A flaky TOTP timing failure in `test_regeneration_only_when_unanswered_seed06` was observed once during a full suite run but passed on rerun and in isolation; no regression caused by Task 15.
 
-## Next task: Task 15
+## Next task: Task 16
 
-**Objective:** Review workflow (REVW-01..05) — reviewer approve, edit + RevisionCrew + direct approval, defer, self-review warning, all 14 approved completes WISP version.
+**Objective:** WISP versioning and export (VERS-01..05) — draft watermark, clean final export, new version clones approved baseline, only one version in progress, prior versions remain exportable.
 
 **Key constraints:**
-- Reviewer can approve, request revision, or defer.
-- Direct approval by the same contributor is allowed with a warning (REVW-04).
-- All 14 domains approved completes the WISP (REVW-05).
+- Draft/complete export behavior differs (VERS-01, VERS-02).
+- New version starts from the approved baseline (VERS-03).
+- Only one `in_progress` version per tenant (VERS-04).
+- Prior versions remain exportable (VERS-05).
 
 **Verification target:**
-- REVW-01..05 green.
+- VERS-01..05 green.

@@ -89,11 +89,11 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | QSTN-04 | Skips defer but block submission | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
 | QSTN-05 | Save and resume exact progress | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
 | QSTN-06 | AI outage falls back to plain answer | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
-| REVW-01 | Reviewer approves compiled answer | review-workflow | integration | test_review_workflow | Task 15 | planned |
-| REVW-02 | Edit produces AI revision, direct approval | review-workflow | integration | test_review_workflow | Task 15 | planned |
-| REVW-03 | Reviewer defers decision | review-workflow | integration | test_review_workflow | Task 15 | planned |
-| REVW-04 | Self-review allowed with warning | review-workflow | integration | test_review_workflow | Task 15 | planned |
-| REVW-05 | All approved completes the WISP | review-workflow | integration | test_review_workflow | Task 15 | planned |
+| REVW-01 | Reviewer approves compiled answer | review-workflow | integration | test_review_workflow | Task 15 | green |
+| REVW-02 | Edit produces AI revision, direct approval | review-workflow | integration | test_review_workflow | Task 15 | green |
+| REVW-03 | Reviewer defers decision | review-workflow | integration | test_review_workflow | Task 15 | green |
+| REVW-04 | Self-review allowed with warning | review-workflow | integration | test_review_workflow | Task 15 | green |
+| REVW-05 | All approved completes the WISP | review-workflow | integration | test_review_workflow | Task 15 | green |
 | VERS-01 | Draft export carries watermark | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
 | VERS-02 | Complete WISP exports clean | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
 | VERS-03 | New version clones approved baseline | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | planned |
