@@ -37,7 +37,7 @@ async def compile_domain(
     if domain["status"] in ("in_review", "approved"):
         raise ConflictError("domain is read-only", code="domain_read_only")
 
-    questions = await _load_answered_questions(
+    questions = await load_answered_questions(
         db, domain_id=domain["id"], contributor_id=contributor_id
     )
     if not questions:
@@ -176,7 +176,7 @@ async def _resolve_domain(db: TenantDB, code: str) -> dict[str, Any]:
     return dict(domain)
 
 
-async def _load_answered_questions(
+async def load_answered_questions(
     db: TenantDB,
     *,
     domain_id: int,

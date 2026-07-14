@@ -26,6 +26,14 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "A WISP domain has been approved",
         "The {domain_name} domain has been approved.",
     ),
+    "domain_revised_and_approved": (
+        "A WISP domain has been revised and approved",
+        "The {domain_name} domain has been revised and approved.",
+    ),
+    "domain_deferred": (
+        "A WISP domain needs more information",
+        "The {domain_name} domain has been returned for more information.",
+    ),
     "wisp_complete": (
         "Your WISP is complete",
         "All 14 domains have been approved. Your WISP is complete.",
