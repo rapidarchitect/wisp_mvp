@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
 **Date:** 2026-07-14  
-**Branch:** `task-15-review-workflow`  
-**Last completed task:** Task 15 (Review Workflow) — BDD scenarios REVW-01..05 green, tests and lint clean.
+**Branch:** `task-16-versioning-export`  
+**Last completed task:** Task 16 (Versioning and PDF Export) — VERS-01..05 green, tests and lint clean.
 
 ## Completed tasks
 
@@ -22,50 +22,47 @@
 | Task 12 | `task-12-domain-assignment` | committed | Domain assignment service/router, exactly one contributor + one reviewer per domain, role-scoped visibility, admin gap flag, BDD scenarios ASSN-01..05 green, Playwright API smoke tests (C-10) |
 | Task 13 | `task-13-questionnaire-flow` | committed | Contributor questionnaire flow: `save_answer`, `save_followup_response`, `get_domain_progress`, `FollowUpCrew` with cap and retry, AI outage waiver (C-09, C-11, C-19), QSTN-01/04/05/06 green, Playwright API smoke test |
 | Task 14 | `task-14-compilation-submission` | committed on `main` | CompilerCrew, compilation/submission service, compile/submit endpoints, BDD QSTN-02/03 green, Playwright compile+submit smoke (C-12, C-19) |
-| Task 15 | `task-15-review-workflow` | current branch | RevisionCrew, review service, approve/revise/defer endpoints, REVW-01..05 green, notification templates for `domain_approved`, `domain_revised_and_approved`, `domain_deferred`, `wisp_complete` |
+| Task 15 | `task-15-review-workflow` | committed | RevisionCrew, review service, approve/revise/defer endpoints, REVW-01..05 green, notification templates for `domain_approved`, `domain_revised_and_approved`, `domain_deferred`, `wisp_complete`, Playwright review smoke |
+| Task 16 | `task-16-versioning-export` | current branch | PDF export via fpdf2, version lifecycle service, version/export router, VERS-01..05 green (C-13, C-14, C-15) |
 
 ## Current verification
 
-- `uv run pytest tests/ -q` → **145 passed**
-- `uv run pytest tests/steps -q` → **44 passed**
-- `uv run pytest tests/steps/test_review_workflow.py -q` → **5 passed**
+- `uv run pytest tests/ -q` → **155 passed, 1 skipped**
+- `uv run pytest tests/steps -q` → **49 passed**
+- `uv run pytest tests/steps/test_wisp_versioning_and_export.py -q` → **5 passed**
+- `uv run pytest tests/unit -q` → **94 passed, 1 skipped**
+- `uv run pytest --cov=app --cov-report=term-missing tests/unit -q` → **88.81% total**, `app/services` ≥85%
 - `uv run ruff check . && uv run ruff format --check .` → **clean**
-- `npx playwright test e2e/review.spec.ts` → **1 passed**
-- `npx playwright test e2e/review.spec.ts e2e/compilation.spec.ts` → **2 passed**
-- `TESTPLAN.md` statuses updated: **REVW-01..05 green**.
+- `TESTPLAN.md` statuses updated: **VERS-01..05 green**.
 
 ## Active files of note
 
-- `app/crews/revision_crew.py` — deterministic fake LLM-friendly revision of a compiled narrative from a reviewer prompt.
-- `app/services/review.py` — `approve_domain`, `revise_and_approve`, `defer_domain`, self-review warning, and `_maybe_complete_version`.
-- `app/api/routers/review.py` — `POST /domains/{code}/approve`, `/revise`, `/defer`.
-- `app/services/notification_templates.py` — added templates for review workflow notifications.
-- `app/services/compilation.py` — `load_answered_questions` is now public for reuse by the revision service.
-- `tests/unit/test_revision_crew.py`, `tests/unit/test_services_review.py`, `tests/unit/test_routers_review.py` — unit coverage.
-- `tests/steps/test_review_workflow.py` — BDD step definitions for REVW-01..05.
-- `tests/steps/common_steps.py` — shared notification assertions and assignment upsert; reused by questionnaire and review scenarios.
-- `features/review-workflow.feature` — REVW-01..05 scenarios.
-- `frontend/e2e/review.spec.ts` — Playwright API smoke test for reviewer approval.
-- `frontend/e2e/setup.py` — rewritten to synchronous `sqlite3` so global setup exits cleanly and is idempotent.
-- `frontend/playwright.config.ts` — now only starts the backend; frontend preview removed because current e2e specs are API-only.
+- `app/services/pdf.py` — `render_wisp_pdf()` using fpdf2; DRAFT watermark gated by `include_draft` (C-13).
+- `app/services/versions.py` — `start_new_version`, `get_current_version`, `list_versions`; single-in-progress guard (C-14); clones approved domains/compiled answers/assignments to new version (C-15).
+- `app/api/routers/versions.py` — `GET /versions`, `GET /versions/current/export`, `GET /versions/{number}/export`, `POST /versions`.
+- `tests/unit/test_services_pdf.py`, `tests/unit/test_services_versions.py`, `tests/unit/test_routers_versions.py` — unit coverage.
+- `tests/steps/test_wisp_versioning_and_export.py` — BDD step definitions for VERS-01..05.
+- `features/wisp-versioning-and-export.feature` — VERS-01..05 scenarios.
+- `pyproject.toml`/`uv.lock` — added `fpdf2` and `pdfminer.six` (dev).
 
 ## Known technical notes
 
-- `revise_and_approve` persists the AI-generated revision to `compiled_answers`, audits `domain_revised`, transitions the domain to `approved`, and sends `domain_revised_and_approved` to the contributor.
-- `approve_domain` allows a reviewer who is also the contributor to approve, but returns `self_review: true` in the response.
-- `_maybe_complete_version` checks whether every domain in the version is approved; if so it marks the version `complete` and notifies the admin.
-- `given_domain_assigned` now uses `ON CONFLICT(domain_id) DO UPDATE` so scenarios can reassign the same domain for self-review tests.
-- A flaky TOTP timing failure in `test_regeneration_only_when_unanswered_seed06` was observed once during a full suite run but passed on rerun and in isolation; no regression caused by Task 15.
+- WeasyPrint was approved but could not import on macOS without system Pango libraries, so I switched to **fpdf2** with your approval. PDF text-layer assertions use `pdfminer.six`.
+- `render_wisp_pdf` accepts an explicit `company_name` from the router because tenant company name lives in the control DB, not the tenant DB vitals table.
+- `start_new_version` refuses to create a second version while any version is `in_progress` (C-14).
+- Prior completed versions remain readable and exportable via `/versions/{number}/export` (C-15).
+- Reviewer approve/revise/defer steps were moved to `tests/steps/common_steps.py` with both `@given` and `@when` decorators so they can be reused across `review-workflow` and `wisp-versioning-and-export` features.
 
-## Next task: Task 16
+## Next task: Task 17
 
-**Objective:** WISP versioning and export (VERS-01..05) — draft watermark, clean final export, new version clones approved baseline, only one version in progress, prior versions remain exportable.
+**Objective:** React frontend: auth, onboarding, dashboards — E2E coverage of SIGN-01, AUTH-01, AUTH-02, USER-02.
 
 **Key constraints:**
-- Draft/complete export behavior differs (VERS-01, VERS-02).
-- New version starts from the approved baseline (VERS-03).
-- Only one `in_progress` version per tenant (VERS-04).
-- Prior versions remain exportable (VERS-05).
+- Signup wizard collects corporate vitals per the field list.
+- Login + TOTP screens.
+- Role-aware dashboards with KPIs and progress.
+- Generated API types from the running dev API.
 
 **Verification target:**
-- VERS-01..05 green.
+- `npm run gen:api` against running dev API.
+- `npm run test` and `npx playwright test frontend/e2e/signup.spec.ts frontend/e2e/auth.spec.ts frontend/e2e/users.spec.ts` green.
