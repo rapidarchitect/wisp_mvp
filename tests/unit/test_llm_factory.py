@@ -14,7 +14,7 @@ def test_create_fake_llm():
 
 def test_create_ollama_llm():
     llm = create_llm("ollama")
-    assert llm.model == "ollama/llama3"
+    assert llm.model == "ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0"
     assert llm.base_url == settings.ollama_base_url
 
 
@@ -37,7 +37,7 @@ def test_create_anthropic_llm():
 
 def test_create_llm_uses_default_provider():
     llm = create_llm()
-    assert llm.model == "ollama/llama3"
+    assert llm.model == "ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0"
 
 
 def test_create_llm_unsupported_provider_raises():

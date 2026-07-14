@@ -39,13 +39,13 @@ def create_llm(provider: str | None = None) -> LLM:
     if provider == "ollama":
         try:
             return LLM(
-                model="ollama/llama3",
+                model="ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0",
                 base_url=settings.ollama_base_url,
                 temperature=0.7,
             )
         except Exception:  # noqa: BLE001
             return ConfiguredLLM(
-                model="ollama/llama3",
+                model="ollama/hf.co/unsloth/gemma-4-12B-it-GGUF:Q8_0",
                 base_url=settings.ollama_base_url,
                 temperature=0.7,
             )
