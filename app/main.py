@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.routers.auth import router as auth_router
+from app.api.routers.compilation import router as compilation_router
 from app.api.routers.domain_assignment import router as domain_assignment_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.questionnaire import router as questionnaire_router
@@ -33,6 +34,7 @@ app.include_router(questions_router, prefix="/questions", tags=["questions"])
 app.include_router(domains_router, prefix="/domains", tags=["domains"])
 app.include_router(domain_assignment_router, prefix="/domains", tags=["domains"])
 app.include_router(questionnaire_router, tags=["questionnaire"])
+app.include_router(compilation_router, tags=["compilation"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 
 # C-01: resolve tenant from subdomain and attach per-tenant DB handle.
