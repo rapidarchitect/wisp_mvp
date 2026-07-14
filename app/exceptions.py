@@ -35,3 +35,7 @@ class ConflictError(WispgenError):
 
 class ExternalServiceError(WispgenError):
     """Outbound integration failed after retry."""
+
+    def __init__(self, message: str, code: str = "external_service_error") -> None:
+        super().__init__(message)
+        self.code = code
