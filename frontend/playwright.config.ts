@@ -20,7 +20,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "cd .. && WISPGEN_BASE_DOMAIN=localhost uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+        "cd .. && WISPGEN_BASE_DOMAIN=localhost LLM_PROVIDER=fake uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
       url: "http://localhost:8000/health",
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
