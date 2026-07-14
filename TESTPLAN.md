@@ -84,8 +84,8 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | ASSN-04 | Contributors see only assigned domains | domain-assignment | integration | test_domain_assignment | Task 12 | green |
 | ASSN-05 | Unassigned domains flagged to Admin | domain-assignment | integration | test_domain_assignment | Task 12 | green |
 | QSTN-01 | Answer triggers up to 3 AI follow-ups | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
-| QSTN-02 | AI compiles domain final answer | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | planned |
-| QSTN-03 | Submission sends domain to review | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | planned |
+| QSTN-02 | AI compiles domain final answer | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | green |
+| QSTN-03 | Submission sends domain to review | contributor-questionnaire | integration | test_contributor_questionnaire | Task 14 | green |
 | QSTN-04 | Skips defer but block submission | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
 | QSTN-05 | Save and resume exact progress | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
 | QSTN-06 | AI outage falls back to plain answer | contributor-questionnaire | integration | test_contributor_questionnaire | Task 13 | green |
