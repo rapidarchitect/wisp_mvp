@@ -18,7 +18,7 @@ async function loginAs(page: Page, email: string) {
 }
 
 test.beforeEach(async ({ request }) => {
-  const resp = await request.post(`http://demo.localhost:8000/api/v1/test/reset-domain/${CODE}`, {
+  const resp = await request.post("http://demo.localhost:8000/api/v1/test/reset-all", {
     headers: { "X-Test-Mode": "1" },
   });
   expect(resp.ok()).toBeTruthy();

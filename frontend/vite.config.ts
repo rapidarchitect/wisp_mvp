@@ -8,10 +8,14 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.DOCKER_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        headers: process.env.DOCKER_API_URL ? { Host: 'demo.localhost' } : undefined,
       },
       '/openapi.json': {
-        target: 'http://localhost:8000',
+        target: process.env.DOCKER_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        headers: process.env.DOCKER_API_URL ? { Host: 'demo.localhost' } : undefined,
       },
     },
   },

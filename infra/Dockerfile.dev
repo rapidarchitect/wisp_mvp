@@ -1,0 +1,34 @@
+# Local development backend image for WISPGen.
+# Uses fake LLM/Tavily so Playwright E2E can run without external credentials.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libsqlite3-0 \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install dependencies first (cache-friendly)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
+
+# Mount point for live source edits
+VOLUME /app/src
+WORKDIR /app/src
+
+ENV WISPGEN_ENV=test
+ENV WISPGEN_DATA_DIR=/app/data
+ENV WISPGEN_BASE_DOMAIN=localhost
+ENV LLM_PROVIDER=fake
+ENV EMAIL_BACKEND=console
+ENV WISPGEN_ENABLE_TEST_ENDPOINTS=true
+
+EXPOSE 8000
+
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app", "--proxy-headers"]

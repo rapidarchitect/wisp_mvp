@@ -63,7 +63,7 @@ async def create_test_user(request: Request, payload: dict) -> dict:
 
 @router.post("/reset-domain/{code}")
 async def reset_domain(request: Request, code: str) -> dict:
-    """Reset a domain to assigned status and delete answers for E2E isolation."""
+    """Reset a single domain to assigned status and delete its answers."""
     _require_test_mode()
     db = get_tenant_db_from_request(request)
     row = await db.fetchone("SELECT id FROM domains WHERE code = ?", (code,))
@@ -79,6 +79,52 @@ async def reset_domain(request: Request, code: str) -> dict:
         "UPDATE domains SET status = 'assigned' WHERE id = ?",
         (domain_id,),
     )
+    await db.execute(
+        "UPDATE wisp_versions SET status = 'in_progress', completed_at = NULL "
+        "WHERE id = (SELECT wisp_version_id FROM domains WHERE id = ?)",
+        (domain_id,),
+    )
+    await db.commit()
+    return {"reset": True}
+
+
+@router.post("/reset-all")
+async def reset_all(request: Request) -> dict:
+    """Reset the entire demo tenant to a known E2E baseline."""
+    _require_test_mode()
+    db = get_tenant_db_from_request(request)
+    await db.execute(
+        "DELETE FROM followups WHERE answer_id IN (SELECT id FROM answers)"
+    )
+    await db.execute("DELETE FROM answers")
+    await db.execute("DELETE FROM compiled_answers")
+    await db.execute("DELETE FROM domain_assignments")
+    await db.execute("UPDATE wisp_versions SET status = 'in_progress', completed_at = NULL")
+    await db.execute("UPDATE domains SET status = 'pending_questions'")
+
+    contributor = await db.fetchone(
+        "SELECT id FROM users WHERE email = ?", ("contributor@demo.example.com",)
+    )
+    reviewer = await db.fetchone(
+        "SELECT id FROM users WHERE email = ?", ("reviewer@demo.example.com",)
+    )
+    domain = await db.fetchone("SELECT id FROM domains WHERE code = ?", ("AC",))
+    if contributor and reviewer and domain:
+        await db.execute(
+            """
+            INSERT INTO domain_assignments (domain_id, contributor_id, reviewer_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(domain_id) DO UPDATE SET
+                contributor_id = excluded.contributor_id,
+                reviewer_id = excluded.reviewer_id
+            """,
+            (domain["id"], contributor["id"], reviewer["id"]),
+        )
+        await db.execute(
+            "UPDATE domains SET status = 'assigned' WHERE id = ?",
+            (domain["id"],),
+        )
+
     await db.commit()
     return {"reset": True}
 

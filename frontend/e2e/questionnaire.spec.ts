@@ -1,21 +1,22 @@
-import { expect, test } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 
-import { generateTotpCodeFromUri } from "./helpers";
+import { loginAsApi } from "./api";
 
 const CONTRIBUTOR_EMAIL = "contributor@demo.example.com";
-const CONTRIBUTOR_PASSWORD = "UserPass123!";
+const TOTP_URI = "otpauth://totp/WISPGen:contributor%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen";
+const CODE = "AC";
 
-async function loginAsContributor(page: any) {
-  await page.goto("http://demo.localhost:5173/login");
-  await expect(page.getByText("Log in to")).toBeVisible();
-  await page.getByLabel("Email").fill(CONTRIBUTOR_EMAIL);
-  await page.getByLabel("Password").fill(CONTRIBUTOR_PASSWORD);
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  await page.getByLabel("Authenticator code").fill(generateTotpCodeFromUri("otpauth://totp/WISPGen:contributor%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen"));
-  await page.getByRole("button", { name: "Verify" }).click();
+async function loginAsContributor(page: Page) {
+  await loginAsApi(page, CONTRIBUTOR_EMAIL, TOTP_URI);
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 10000 });
 }
+
+test.beforeEach(async ({ request }) => {
+  const resp = await request.post(`http://demo.localhost:8000/api/v1/test/reset-domain/${CODE}`, {
+    headers: { "X-Test-Mode": "1" },
+  });
+  expect(resp.ok()).toBeTruthy();
+});
 
 test("answering a question generates follow-ups and AI compiles the domain (QSTN-01, QSTN-02)", async ({ page }) => {
   await loginAsContributor(page);

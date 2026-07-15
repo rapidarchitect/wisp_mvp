@@ -134,6 +134,13 @@ async function approveAllDomains() {
   }
 }
 
+test.beforeEach(async ({ request }) => {
+  const resp = await request.post("http://demo.localhost:8000/api/v1/test/reset-all", {
+    headers: { "X-Test-Mode": "1" },
+  });
+  expect(resp.ok()).toBeTruthy();
+});
+
 test("draft export downloads PDF (VERS-01)", async ({ page }) => {
   await loginAs(page, ADMIN_EMAIL);
   await page.getByRole("link", { name: "Versions" }).click();
