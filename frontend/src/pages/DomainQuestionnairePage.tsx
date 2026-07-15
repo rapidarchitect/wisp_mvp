@@ -8,8 +8,12 @@ import {
   Divider,
   FormControl,
   FormControlLabel,
+  LinearProgress,
   Radio,
   RadioGroup,
+  Step,
+  StepLabel,
+  Stepper,
   TextField,
   Typography,
 } from "@mui/material";
@@ -54,6 +58,7 @@ export function DomainQuestionnairePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [narrative, setNarrative] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const loadProgress = async () => {
     if (!code) return;
@@ -205,6 +210,12 @@ export function DomainQuestionnairePage() {
     return <CircularProgress />;
   }
 
+  const questions = progress.questions;
+  const total = questions.length;
+  const q = questions[currentStep];
+  const progressValue = total === 0 ? 0 : ((currentStep + 1) / total) * 100;
+  const canAnswer = progress.status === "assigned" || progress.status === "in_progress";
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -212,8 +223,27 @@ export function DomainQuestionnairePage() {
       </Typography>
       <Chip label={progress.status} sx={{ mb: 2 }} />
 
-      {progress.questions.map((q) => (
-        <Card key={q.id} data-question={q.id} sx={{ mb: 2 }}>
+      <LinearProgress
+        variant="determinate"
+        value={progressValue}
+        sx={{ mb: 2 }}
+        data-testid="question-progress"
+      />
+
+      <Stepper activeStep={currentStep} alternativeLabel sx={{ mb: 3 }} data-testid="question-stepper">
+        {questions.map((step) => (
+          <Step key={step.id}>
+            <StepLabel>{step.position}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }} data-testid="step-indicator">
+        Question {currentStep + 1} of {total}
+      </Typography>
+
+      {q && (
+        <Card key={q.id} data-question={q.id} sx={{ mb: 2 }} data-testid={`question-card-${q.id}`}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               {q.position}. {q.text}
@@ -239,7 +269,7 @@ export function DomainQuestionnairePage() {
                           onBlur={(e) =>
                             respondFollowup(f.id, e.target.value)
                           }
-                          disabled={progress.status !== "assigned" && progress.status !== "in_progress"}
+                          disabled={!canAnswer}
                         />
                       </Box>
                     ))}
@@ -271,7 +301,7 @@ export function DomainQuestionnairePage() {
                   variant="outlined"
                   color="warning"
                   onClick={() => skipQuestion(q.id)}
-                  disabled={loading}
+                  disabled={loading || !canAnswer}
                   sx={{ mt: 1 }}
                 >
                   Skip
@@ -280,7 +310,50 @@ export function DomainQuestionnairePage() {
             )}
           </CardContent>
         </Card>
-      ))}
+      )}
+
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Button
+          variant="outlined"
+          disabled={currentStep === 0}
+          onClick={() => setCurrentStep((s) => s - 1)}
+          data-testid="prev-step"
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outlined"
+          disabled={currentStep === total - 1}
+          onClick={() => setCurrentStep((s) => s + 1)}
+          data-testid="next-step"
+        >
+          Next
+        </Button>
+      </Box>
+
+      {currentStep === total - 1 && (
+        <Card variant="outlined" sx={{ mb: 2 }} data-testid="questionnaire-summary">
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Summary
+            </Typography>
+            {questions.map((sq) => (
+              <Box key={sq.id} sx={{ mb: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {sq.position}. {sq.text}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {sq.answer
+                    ? sq.answer.skipped
+                      ? "Skipped"
+                      : `Answer: ${sq.answer.value}`
+                    : "Not answered"}
+                </Typography>
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {narrative && (
         <Card sx={{ mb: 2 }} data-testid="compiled-narrative">
@@ -295,7 +368,7 @@ export function DomainQuestionnairePage() {
 
       <Divider sx={{ my: 2 }} />
 
-      <Box sx={{ display: "flex", gap: 2 }}>
+      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Button
           variant="contained"
           onClick={compile}
@@ -311,7 +384,7 @@ export function DomainQuestionnairePage() {
         >
           Submit for review
         </Button>
-        {progress.status === "assigned" || progress.status === "in_progress" ? (
+        {canAnswer && (
           <Button
             variant="outlined"
             onClick={answerAll}
@@ -320,7 +393,7 @@ export function DomainQuestionnairePage() {
           >
             Answer all remaining questions
           </Button>
-        ) : null}
+        )}
       </Box>
     </Box>
   );
