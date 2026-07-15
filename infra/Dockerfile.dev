@@ -29,6 +29,9 @@ ENV LLM_PROVIDER=fake
 ENV EMAIL_BACKEND=console
 ENV WISPGEN_ENABLE_TEST_ENDPOINTS=true
 
+COPY infra/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app", "--proxy-headers"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

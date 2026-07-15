@@ -17,8 +17,7 @@ services:
       - LLM_PROVIDER=fake
       - EMAIL_BACKEND=console
       - WISPGEN_ENABLE_TEST_ENDPOINTS=true
-    command: >
-      sh -c "uv sync --frozen && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --proxy-headers"
+    # Entrypoint handles dependency sync, background uvicorn start, and E2E data seeding.
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 5s
