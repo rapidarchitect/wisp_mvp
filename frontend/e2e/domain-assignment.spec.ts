@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-import { apiCallRaw, getToken, getDomainAnswers, listDomains, resetDomain } from "./api";
-import { generateTotpCode, API_BASE } from "./helpers";
+import { apiCallRaw, getToken, getDomainAnswers, listDomains, loginAsApi, resetDomain } from "./api";
+import { generateTotpCode, generateTotpCodeFromUri, API_BASE } from "./helpers";
 import { resetAll } from "./fixtures";
 
 test.beforeEach(async ({ request }) => {
@@ -138,6 +138,44 @@ test("contributor can list only their assigned domains (ASSN-04)", async () => {
   expect(Array.isArray(domains)).toBe(true);
   expect(domains.every((d) => d.role === "contributor")).toBe(true);
   expect(domains.some((d) => d.code === "PE")).toBe(true);
+});
+
+test("admin assigns domain through UI (ASSN-06)", async ({ page }) => {
+  await loginAsApi(
+    page,
+    "admin@demo.example.com",
+    "otpauth://totp/WISPGen:admin%40demo.example.com?secret=JBSWY3DPEHPK3PXP&issuer=WISPGen",
+  );
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 10000 });
+
+  await page.getByRole("link", { name: "Domains" }).click();
+  await expect(page.getByRole("heading", { name: "Domains" })).toBeVisible();
+
+  const domainCard = page.getByTestId("domain-card-PE");
+  await expect(domainCard).toBeVisible();
+
+  await domainCard.getByLabel("Contributor").click();
+  await page.getByRole("option", { name: "contributor@demo.example.com" }).click();
+  await page.keyboard.press("Escape");
+
+  await domainCard.getByLabel("Reviewer").click();
+  await page.getByRole("option", { name: "reviewer@demo.example.com" }).click();
+  await page.keyboard.press("Escape");
+
+  await domainCard.getByRole("button", { name: "Assign" }).click();
+
+  // Unassigned domains disappear from this page once assigned.
+  await expect(domainCard).not.toBeVisible({ timeout: 10000 });
+
+  const contributorToken = await login("contributor@demo.example.com");
+  const response = await fetch(`${API_BASE}/api/v1/domains/assigned`, {
+    headers: { Authorization: `Bearer ${contributorToken}` },
+  });
+  expect(response.status).toBe(200);
+  const domains = (await response.json()) as { code: string; role: string }[];
+  const pe = domains.find((d) => d.code === "PE");
+  expect(pe).toBeTruthy();
+  expect(pe!.role).toBe("contributor");
 });
 
 test("admin can view unassigned domains and non-admin cannot (ASSN-05)", async () => {
