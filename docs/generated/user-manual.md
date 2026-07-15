@@ -35,13 +35,14 @@ If your TOTP is wrong five times in a row, the account locks for 15 minutes. Use
 
 ## 3. Dashboard overview
 
-The dashboard shows the overall state of your WISP.
+The dashboard shows the overall state of your WISP as a card grid.
 
-- A summary tile shows how many of the 14 domains are complete, in review, or pending.
+- Each card represents one of the 14 security domains and shows its current status.
+- A role-aware button at the top gives fast access to the right page: **Go to review queue** for reviewers, **My domains** for contributors, or **Manage domains** for admins who are not also contributors/reviewers.
 - The sidebar gives admins access to Users, Domains, and Versions.
 - Contributors see **My domains**; reviewers see **Review**.
 
-Click any tile or sidebar link to move to the next step.
+Click any card or sidebar link to move to the next step.
 
 ![Dashboard](screenshots/dashboard.png)
 
@@ -54,11 +55,11 @@ Only admins can invite users. A single user can hold one, two, or all three role
 1. Open **Users** from the sidebar.
 2. Enter the new user's email.
 3. Select one or more roles from the dropdown.
-4. Click **Send invitation**.
+4. Click **Invite**.
 
-The invitation appears in the **Pending invitations** list. WISPGen emails the user an activation link that is valid for 7 days. The invitee sets a password and enrolls TOTP on first login.
+The invitation appears as a card in the **Pending invitations** section. WISPGen emails the user an activation link that is valid for 7 days. The invitee sets a password and enrolls TOTP on first login.
 
-To change roles or deactivate a user, contact your workspace administrator through the same Users page.
+The Users page also lists all existing users. Admins can change a user's roles from the table, deactivate or reactivate an account, or delete a user permanently after confirming the action.
 
 ![Users and invitations](screenshots/users-page.png)
 
@@ -66,14 +67,15 @@ To change roles or deactivate a user, contact your workspace administrator throu
 
 ## 5. Assigning contributors and reviewers to domains
 
-Each of the 14 security domains needs exactly one contributor and one reviewer at a time. Admins assign people on the **Domains** page.
+Each of the 14 security domains needs exactly one contributor and one reviewer at a time. Admins assign people from the **Domains** page, which lists every unassigned domain as a card.
 
 1. Open **Domains** from the sidebar.
 2. Find an unassigned domain, for example **Audit (AU)**.
-3. Choose a contributor and a reviewer from the dropdowns.
-4. Save the assignment.
+3. Choose a contributor from the **Contributor** dropdown.
+4. Choose a reviewer from the **Reviewer** dropdown.
+5. Click **Assign**.
 
-The domain moves from `pending_questions` to `assigned` and appears in the contributor's **My domains** list and the reviewer's **Review** queue.
+The card disappears from the unassigned list, the domain moves to `assigned`, and it appears in the contributor's **My domains** list and the reviewer's **Review** queue.
 
 ![Domain assignment](screenshots/domains-page.png)
 
@@ -81,13 +83,16 @@ The domain moves from `pending_questions` to `assigned` and appears in the contr
 
 ## 6. Answering the questionnaire
 
-Contributors answer yes-or-no questions for each assigned domain.
+Contributors answer one yes-or-no question at a time for each assigned domain.
 
 1. Click **My domains** in the sidebar.
 2. Select a domain, for example **Access Control (AC)**.
-3. Answer each question. If the answer is **Yes**, WISPGen may generate up to three follow-up questions about how the control is implemented.
-4. Fill in the follow-up responses.
-5. When every enabled question and follow-up is complete, click **Compile** to generate the domain narrative, then **Submit** to send it to the reviewer.
+3. Use the progress bar and stepper to track your position.
+4. Answer the current question with **Yes** or **No**. If the answer is **Yes**, WISPGen may generate up to three follow-up questions about how the control is implemented.
+5. Fill in each follow-up response and move to the next question with the **Next** button.
+6. When every enabled question and follow-up is complete, the summary panel appears on the last step. Click **Compile** to generate the domain narrative, then **Submit** to send it to the reviewer.
+
+Use **Previous** and **Next** to review earlier answers. Your answers are saved immediately, so you can leave and resume later.
 
 If an AI service is unavailable, WISPGen waives the follow-up questions and records the plain answer so work can continue.
 
@@ -97,10 +102,10 @@ If an AI service is unavailable, WISPGen waives the follow-up questions and reco
 
 ## 7. Reviewing and approving domains
 
-Reviewers approve, defer, or revise each submitted domain.
+The **Review** page is a filterable card queue. Use the **all**, **in review**, and **approved** tabs to focus on the domains you need.
 
 1. Click **Review** in the sidebar.
-2. Select a domain from the queue.
+2. Select a domain card from the queue.
 3. Read the compiled narrative and the answers.
 4. Choose one of the following actions:
    - **Approve** to mark the domain complete.

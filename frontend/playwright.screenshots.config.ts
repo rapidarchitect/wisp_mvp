@@ -3,11 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 const useDocker = !!process.env.DOCKER_DEV;
 
 export default defineConfig({
-  testDir: "./e2e",
-  testIgnore: "**/manual/**",
+  testDir: "./e2e/manual",
   fullyParallel: !useDocker,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: useDocker ? 1 : undefined,
   reporter: "list",
   use: {
