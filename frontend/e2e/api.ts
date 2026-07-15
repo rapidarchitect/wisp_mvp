@@ -161,6 +161,20 @@ export async function deactivateUser(token: string, userId: number): Promise<voi
   });
 }
 
+export async function reactivateUser(token: string, userId: number): Promise<void> {
+  await apiCall(`/users/${userId}/reactivate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function deleteUser(token: string, userId: number): Promise<void> {
+  await apiCall(`/users/${userId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function setUserRoles(token: string, userId: number, roles: string[]): Promise<void> {
   await apiCall(`/users/${userId}/roles`, {
     method: "POST",

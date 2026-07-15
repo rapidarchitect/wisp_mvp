@@ -4,14 +4,24 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
+  Grid,
   InputLabel,
-  List,
-  ListItem,
-  ListItemText,
   MenuItem,
+  Paper,
   Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -36,6 +46,14 @@ type Invitation = {
 
 const availableRoles = ["admin", "contributor", "reviewer"];
 
+function formatRoles(roles: string): string {
+  try {
+    return (JSON.parse(roles) as string[]).join(", ");
+  } catch {
+    return roles;
+  }
+}
+
 export function AdminUsersPage() {
   const [users, setUsers] = useState<User[] | null>(null);
   const [invitations, setInvitations] = useState<Invitation[] | null>(null);
@@ -43,6 +61,7 @@ export function AdminUsersPage() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>(["contributor"]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const loadUsers = () => {
     apiFetch<User[]>("/users")
@@ -86,6 +105,52 @@ export function AdminUsersPage() {
     }
   };
 
+  const updateRoles = async (user: User, roles: string[]) => {
+    try {
+      await apiFetch(`/users/${user.id}/roles`, {
+        method: "POST",
+        body: { roles: roles.join(",") },
+      });
+      loadUsers();
+    } catch (err) {
+      const message = err instanceof ApiResponseError ? err.error.message : "Role update failed";
+      setError(message);
+    }
+  };
+
+  const toggleStatus = async (user: User) => {
+    try {
+      const endpoint = user.status === "active" ? "/deactivate" : "/reactivate";
+      await apiFetch(`/users/${user.id}${endpoint}`, {
+        method: "POST",
+      });
+      loadUsers();
+    } catch (err) {
+      const message = err instanceof ApiResponseError ? err.error.message : "Status change failed";
+      setError(message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await apiFetch(`/users/${deleteTarget.id}`, { method: "DELETE" });
+      loadUsers();
+      loadInvitations();
+    } catch (err) {
+      const message = err instanceof ApiResponseError ? err.error.message : "Delete failed";
+      setError(message);
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const statusColor = (status: string) => {
+    if (status === "active") return "success";
+    if (status === "deactivated") return "default";
+    return "info";
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -98,63 +163,117 @@ export function AdminUsersPage() {
             Invite user
           </Typography>
           <Box component="form" onSubmit={handleInvite}>
-            <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="roles-label">Roles</InputLabel>
-              <Select
-                labelId="roles-label"
-                multiple
-                value={selectedRoles}
-                onChange={(e) => setSelectedRoles(e.target.value as string[])}
-                renderValue={(selected) => (selected as string[]).join(", ")}
-                label="Roles"
-              >
-                {availableRoles.map((role) => (
-                  <MenuItem key={role} value={role}>
-                    <Checkbox checked={selectedRoles.includes(role)} />
-                    {role}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Grid container spacing={2} alignItems="flex-start">
+              <Grid item xs={12} md={5}>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth>
+                  <InputLabel id="roles-label">Roles</InputLabel>
+                  <Select
+                    labelId="roles-label"
+                    multiple
+                    value={selectedRoles}
+                    onChange={(e) => setSelectedRoles(e.target.value as string[])}
+                    renderValue={(selected) => (selected as string[]).join(", ")}
+                    label="Roles"
+                  >
+                    {availableRoles.map((role) => (
+                      <MenuItem key={role} value={role}>
+                        <Checkbox checked={selectedRoles.includes(role)} />
+                        {role}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <Button type="submit" variant="contained" fullWidth disabled={loading}>
+                  {loading ? <CircularProgress size={24} /> : "Invite"}
+                </Button>
+              </Grid>
+            </Grid>
             {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
-            <Button type="submit" variant="contained" sx={{ mt: 2 }} disabled={loading}>
-              {loading ? <CircularProgress size={24} /> : "Send invitation"}
-            </Button>
           </Box>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Users
           </Typography>
           {users === null && <CircularProgress />}
           {users && (
-            <List>
-              {users.map((u) => (
-                <ListItem key={u.id}>
-                  <ListItemText
-                    primary={u.email}
-                    secondary={`${u.roles.join(", ")} — ${u.status}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Roles</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {users.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>{u.email}</TableCell>
+                      <TableCell>
+                        <FormControl fullWidth size="small">
+                          <Select
+                            multiple
+                            value={u.roles}
+                            onChange={(e) => updateRoles(u, e.target.value as string[])}
+                            renderValue={(selected) => (selected as string[]).join(", ")}
+                          >
+                            {availableRoles.map((role) => (
+                              <MenuItem key={role} value={role}>
+                                <Checkbox checked={u.roles.includes(role)} />
+                                {role}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={u.status} color={statusColor(u.status) as never} size="small" />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => toggleStatus(u)}
+                          sx={{ mr: 1 }}
+                        >
+                          {u.status === "active" ? "Deactivate" : "Reactivate"}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => setDeleteTarget(u)}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
 
-      <Card sx={{ mt: 3 }}>
+      <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Pending invitations
@@ -164,25 +283,37 @@ export function AdminUsersPage() {
             <Typography color="text.secondary">No pending invitations.</Typography>
           )}
           {invitations && invitations.length > 0 && (
-            <List>
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 2 }}>
               {invitations.map((inv) => (
-                <ListItem key={inv.token}>
-                  <ListItemText
-                    primary={inv.email}
-                    secondary={(() => {
-                      try {
-                        return (JSON.parse(inv.roles) as string[]).join(", ");
-                      } catch {
-                        return inv.roles;
-                      }
-                    })()}
-                  />
-                </ListItem>
+                <Card key={inv.token} variant="outlined" data-testid={`invitation-${inv.email}`}>
+                  <CardContent>
+                    <Typography fontWeight="bold">{inv.email}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatRoles(inv.roles)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Expires: {new Date(inv.expires_at).toLocaleDateString()}
+                    </Typography>
+                  </CardContent>
+                </Card>
               ))}
-            </List>
+            </Box>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Delete user?</DialogTitle>
+        <DialogContent>
+          This will permanently remove {deleteTarget?.email} and any active invitations.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

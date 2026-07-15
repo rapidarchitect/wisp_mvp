@@ -41,10 +41,10 @@ test("invite user with two roles (USER-01)", async ({ page }) => {
   await expect(page.getByRole("option", { name: "reviewer" })).toBeVisible();
   await page.getByRole("option", { name: "reviewer" }).click();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Send invitation" }).click();
+  await page.getByRole("button", { name: "Invite" }).click();
 
   await expect(page.getByRole("heading", { name: "Pending invitations" })).toBeVisible();
-  const invitedItem = page.locator("li").filter({ hasText: invitedEmail });
+  const invitedItem = page.getByTestId(`invitation-${invitedEmail}`);
   await expect(invitedItem).toBeVisible({ timeout: 10000 });
   await expect(invitedItem).toContainText("contributor, reviewer");
 });
@@ -63,9 +63,9 @@ test("invited user activates account (USER-02)", async ({ page }) => {
   await page.getByRole("option", { name: "contributor" }).click();
   await page.getByRole("option", { name: "admin" }).click();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Send invitation" }).click();
+  await page.getByRole("button", { name: "Invite" }).click();
   await expect(
-    page.locator("li").filter({ hasText: invitedEmail }),
+    page.getByTestId(`invitation-${invitedEmail}`),
   ).toBeVisible({ timeout: 10000 });
 
   const invitations = await listInvitations(invitedEmail);
@@ -129,6 +129,44 @@ test("expired invitation link refused (USER-05)", async () => {
     }),
   });
   expect(response.status).toBe(422);
+});
+
+test("admin can reactivate a deactivated user (USER-07)", async ({ page }) => {
+  const adminToken = await getToken(ADMIN_EMAIL);
+  const email = `e2ereactivate-${Date.now()}@demo.example.com`;
+  await createTestUser(email, ["contributor"]);
+  const usersBefore = await listUsers(adminToken);
+  const target = usersBefore.find((u) => u.email === email);
+  expect(target).toBeTruthy();
+  await deactivateUser(adminToken, target!.id);
+
+  await loginAsAdmin(page);
+  await page.getByRole("link", { name: "Users" }).click();
+  const row = page.locator("tr").filter({ hasText: email });
+  await expect(row).toContainText("deactivated", { timeout: 10000 });
+  await row.getByRole("button", { name: "Reactivate" }).click();
+  await expect(row).toContainText("active", { timeout: 10000 });
+
+  const usersAfter = await listUsers(adminToken);
+  const reactivated = usersAfter.find((u) => u.email === email);
+  expect(reactivated?.status).toBe("active");
+});
+
+test("admin can delete a user (USER-08)", async ({ page }) => {
+  const adminToken = await getToken(ADMIN_EMAIL);
+  const email = `e2edelete-${Date.now()}@demo.example.com`;
+  await createTestUser(email, ["contributor"]);
+
+  await loginAsAdmin(page);
+  await page.getByRole("link", { name: "Users" }).click();
+  const row = page.locator("tr").filter({ hasText: email });
+  await expect(row).toBeVisible({ timeout: 10000 });
+  await row.getByRole("button", { name: "Delete" }).click();
+  await page.locator('[role="dialog"]').getByRole("button", { name: "Delete" }).click();
+  await expect(row).not.toBeVisible({ timeout: 10000 });
+
+  const usersAfter = await listUsers(adminToken);
+  expect(usersAfter.find((u) => u.email === email)).toBeUndefined();
 });
 
 test("deactivation flags domains and keeps answers (USER-06)", async () => {

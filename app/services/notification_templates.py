@@ -6,6 +6,11 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "Your WISPGen account ({email}) has been deactivated. "
         "Contact your administrator if you believe this was a mistake.",
     ),
+    "account_reactivated": (
+        "Your WISPGen account has been reactivated",
+        "Your WISPGen account ({email}) has been reactivated. "
+        "You can now log in and continue working.",
+    ),
     "roles_updated": (
         "Your WISPGen roles have been updated",
         "Your WISPGen roles have been updated to: {roles}.",

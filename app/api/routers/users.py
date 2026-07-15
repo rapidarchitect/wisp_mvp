@@ -6,7 +6,7 @@ from app.api.dependencies import get_current_user, require_admin
 from app.middleware.tenancy import get_tenant_db_from_request
 from app.models.invitation import AcceptInvitationRequest, InvitationRequest, SetRolesRequest
 from app.services.invitations import accept_invitation, invite_user
-from app.services.users import deactivate_user, list_users, set_roles
+from app.services.users import deactivate_user, delete_user, list_users, reactivate_user, set_roles
 
 router = APIRouter()
 
@@ -105,6 +105,43 @@ async def users_deactivate(
         actor_user_id=actor["id"],
         target_email=target["email"],
     )
+
+
+@router.post("/{user_id}/reactivate")
+async def users_reactivate(
+    request: Request,
+    user_id: int,
+    authorization: str = Header(...),
+) -> dict:
+    """Reactivate a deactivated user."""
+    actor = await get_current_user(request, authorization)
+    require_admin(actor)
+    db = get_tenant_db_from_request(request)
+    target = await _get_user_by_id(db, user_id)
+    return await reactivate_user(
+        db,
+        actor_user_id=actor["id"],
+        target_email=target["email"],
+    )
+
+
+@router.delete("/{user_id}")
+async def users_delete(
+    request: Request,
+    user_id: int,
+    authorization: str = Header(...),
+) -> dict:
+    """Permanently delete a user."""
+    actor = await get_current_user(request, authorization)
+    require_admin(actor)
+    db = get_tenant_db_from_request(request)
+    target = await _get_user_by_id(db, user_id)
+    await delete_user(
+        db,
+        actor_user_id=actor["id"],
+        target_email=target["email"],
+    )
+    return {"deleted": True}
 
 
 async def _get_user_by_id(db, user_id: int) -> dict:
