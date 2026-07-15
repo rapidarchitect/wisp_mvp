@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.dev
+    container_name: wispgen-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app/src
+      - wispgen-data:/app/src/data
+      - wispgen-venv:/app/src/.venv
+    environment:
+      - WISPGEN_ENV=test
+      - WISPGEN_DATA_DIR=/app/src/data
+      - WISPGEN_BASE_DOMAIN=localhost
+      - LLM_PROVIDER=fake
+      - EMAIL_BACKEND=console
+      - WISPGEN_ENABLE_TEST_ENDPOINTS=true
+    command: >
+      sh -c "uv sync --frozen && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --proxy-headers"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  frontend:
+    image: node:20-slim
+    container_name: wispgen-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - DOCKER_API_URL=http://backend:8000
+    command: sh -c "npm ci && npm run dev -- --host"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5173/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  wispgen-data:
+  wispgen-venv:

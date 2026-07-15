@@ -42,6 +42,8 @@ type Progress = {
   code: string;
   name: string;
   status: string;
+  contributor_id?: number;
+  reviewer_id?: number;
   questions: Question[];
   submit_ready: boolean;
 };
@@ -64,7 +66,7 @@ export function ReviewDomainPage() {
       .then((p) => {
         setProgress(p);
         setError(null);
-        if (user && p.questions.some((q) => q.answer && q.answer.id === user.id)) {
+        if (user && p.contributor_id === user.id) {
           setSelfReviewWarning(true);
         }
       })

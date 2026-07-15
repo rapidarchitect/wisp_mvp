@@ -23,6 +23,22 @@ async def users_list(request: Request, authorization: str = Header(...)) -> list
     return await list_users(db)
 
 
+@router.get("/invitations")
+async def users_invitations_list(request: Request, authorization: str = Header(...)) -> list[dict]:
+    """List pending invitations in the current tenant."""
+    require_admin(await get_current_user(request, authorization))
+    db = get_tenant_db_from_request(request)
+    rows = await db.fetchall(
+        """
+        SELECT email, roles, token, expires_at, accepted_at
+        FROM invitations
+        WHERE accepted_at IS NULL
+        ORDER BY expires_at DESC
+        """
+    )
+    return [dict(row) for row in rows]
+
+
 @router.post("/invite")
 async def users_invite(
     request: Request,

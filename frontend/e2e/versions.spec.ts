@@ -134,6 +134,13 @@ async function approveAllDomains() {
   }
 }
 
+test.beforeEach(async ({ request }) => {
+  const resp = await request.post("http://demo.localhost:8000/api/v1/test/reset-all", {
+    headers: { "X-Test-Mode": "1" },
+  });
+  expect(resp.ok()).toBeTruthy();
+});
+
 test("draft export downloads PDF (VERS-01)", async ({ page }) => {
   await loginAs(page, ADMIN_EMAIL);
   await page.getByRole("link", { name: "Versions" }).click();
@@ -160,4 +167,48 @@ test("complete WISP exports clean PDF (VERS-02)", async ({ page }) => {
   ]);
 
   expect(download.suggestedFilename()).toMatch(/wisp-v\d+-complete\.pdf/);
+});
+
+test("new version clones approved baseline (VERS-03)", async ({ page }) => {
+  await approveAllDomains();
+
+  await loginAs(page, ADMIN_EMAIL);
+  await page.getByRole("link", { name: "Versions" }).click();
+  await expect(page.getByRole("heading", { name: "Versions and export" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Start new version" }).click();
+  await expect(page.getByText("New version started.")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Version 2")).toBeVisible();
+
+  // The latest version should contain all 14 cloned domains.
+  const domains = await listCurrentVersionDomains();
+  expect(domains.length).toBe(14);
+});
+
+test("only one version can be in progress (VERS-04)", async ({ page }) => {
+  await approveAllDomains();
+
+  await loginAs(page, ADMIN_EMAIL);
+  await page.getByRole("link", { name: "Versions" }).click();
+  await page.getByRole("button", { name: "Start new version" }).click();
+  await expect(page.getByText("New version started.")).toBeVisible({ timeout: 10000 });
+
+  await page.getByRole("button", { name: "Start new version" }).click();
+  await expect(page.getByText(/a version is already in progress|version_in_progress/)).toBeVisible({ timeout: 10000 });
+});
+
+test("prior versions remain exportable (VERS-05)", async ({ page }) => {
+  await approveAllDomains();
+
+  await loginAs(page, ADMIN_EMAIL);
+  await page.getByRole("link", { name: "Versions" }).click();
+  await page.getByRole("button", { name: "Start new version" }).click();
+  await expect(page.getByText("New version started.")).toBeVisible({ timeout: 10000 });
+
+  // Export the prior (complete) version from the list.
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("li", { hasText: "Version 1" }).getByRole("button", { name: "Export" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/wisp-v1-complete\.pdf/);
 });

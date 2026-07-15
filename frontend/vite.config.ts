@@ -6,12 +6,25 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.DOCKER_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.setHeader('Host', req.headers.host || 'demo.localhost');
+          });
+        },
       },
       '/openapi.json': {
-        target: 'http://localhost:8000',
+        target: process.env.DOCKER_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.setHeader('Host', req.headers.host || 'demo.localhost');
+          });
+        },
       },
     },
   },

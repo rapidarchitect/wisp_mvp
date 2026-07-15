@@ -38,7 +38,7 @@ export function LoginPage() {
       <Typography variant="h4" gutterBottom>
         Log in to {slug}
       </Typography>
-      <Box component="form" onSubmit={handleSubmit}>
+      <Box component="form" onSubmit={handleSubmit} autoComplete="off">
         <TextField
           label="Email"
           type="email"
@@ -47,6 +47,8 @@ export function LoginPage() {
           fullWidth
           margin="normal"
           required
+          autoComplete="off"
+          inputProps={{ "data-testid": "login-email" }}
         />
         <TextField
           label="Password"
@@ -56,6 +58,8 @@ export function LoginPage() {
           fullWidth
           margin="normal"
           required
+          autoComplete="new-password"
+          inputProps={{ "data-testid": "login-password" }}
         />
         {error && (
           <Typography color="error" sx={{ mt: 2 }}>
