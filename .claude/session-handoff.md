@@ -61,22 +61,24 @@
 - Backend `/test/login` bypasses TOTP to avoid clock-drift flakes during long API-driven E2E setup sequences.
 - Workers are forced to 1 and `fullyParallel: false` under `DOCKER_DEV=1` to avoid SQLite contention.
 
-## Task 19 status: in progress on branch `task-19-infrastructure`
+## Completed tasks (updated 2026-07-15)
 
 **Objective:** Production infrastructure — Terraform, nginx, certbot, systemd, EC2 deployment.
 
-**Completed so far:**
-- Audited `infra/` files against the Task 19 plan.
-- Fixed `userdata.sh` to give the `wispgen` user a shell and clone the repo on first boot.
-- Extended `scripts/deploy.sh` with `--target`, `--key`, `--user` flags.
-- Updated `infra/README.md` and `TESTPLAN.md` EBS encryption status.
+**Merged:**
+- PR #1: Task 20 full Playwright E2E regression suite.
+- PR #2: Task 19 EC2 bootstrap and deploy script hardening.
+- Feature branches deleted locally and remotely.
 
-**Verification:**
-- `terraform plan` clean (13 resources to add).
-- `docker build -t wispgen -f infra/Dockerfile .` clean.
-- Shell scripts pass `bash -n`.
-- Full pytest, BDD, lint, and npm build pass.
+**Verification after merge:**
+- `uv run pytest tests/ -q` → **237 passed, 1 skipped**
+- `uv run ruff check . && uv run ruff format --check .` → **clean**
+- `npm run build` → **clean**
+- `DOCKER_DEV=1 npx playwright test` → **45 passed**
+- `terraform plan -var="allowed_ssh_cidr=24.11.224.55/32"` → **clean**
 
-**Remaining:**
-- Commit Task 19 changes and open PR.
-- Live `terraform apply`, DNS setup, and certbot DNS-01 issuance are intentionally left to the human operator per Non-Goal 5.
+**Documentation published:**
+- `docs/generated/user-manual.md` with screenshots of signup, login, dashboard, users, domains, questionnaire, review, and versions/export.
+
+**Remaining operational work:**
+- Live `terraform apply`, Route 53 DNS setup, and certbot DNS-01 issuance for `*.app.wisp.llc` are intentionally left to the human operator per Non-Goal 5.
