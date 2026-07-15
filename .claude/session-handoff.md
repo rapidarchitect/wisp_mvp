@@ -1,8 +1,8 @@
 # Session Handoff — WISPGen
 
-**Date:** 2026-07-14
-**Branch:** `task-18-contributor-reviewer-ui`
-**Last completed task:** Task 18 (React Contributor/Reviewer UI) — QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 E2E green; tests and lint clean.
+**Date:** 2026-07-15
+**Branch:** `task-20-e2e-regression`
+**Last completed task:** Task 20 (full Playwright E2E regression suite) — all 45 scenario IDs green in TESTPLAN.md.
 
 ## Completed tasks
 
@@ -25,39 +25,41 @@
 | Task 15 | `task-15-review-workflow` | committed | RevisionCrew, review service, approve/revise/defer endpoints, REVW-01..05 green, notification templates for `domain_approved`, `domain_revised_and_approved`, `domain_deferred`, `wisp_complete`, Playwright review smoke |
 | Task 16 | `task-16-versioning-export` | committed | PDF export via fpdf2, version lifecycle service, version/export router, VERS-01..05 green (C-13, C-14, C-15) |
 | Task 17 | `task-17-frontend-auth-dashboards` | committed | React auth, onboarding, dashboards; E2E SIGN-01, AUTH-01, AUTH-02, USER-02 green |
-| Task 18 | `task-18-contributor-reviewer-ui` | current branch | Contributor questionnaire page, reviewer queue/review page, admin versions/export page; E2E QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 green |
+| Task 18 | `task-18-contributor-reviewer-ui` | committed | Contributor questionnaire page, reviewer queue/review page, admin versions/export page; E2E QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 green |
+| Task 20 | `task-20-e2e-regression` | current branch | Full Playwright regression suite for all scenario IDs; test-only endpoints, fixtures, E2E stability fixes, lint clean |
 
 ## Current verification
 
 - `uv run pytest tests/ -q` → **237 passed, 1 skipped**
 - `uv run pytest tests/steps -q` → **49 passed**
 - `uv run pytest tests/unit -q` → **188 passed, 1 skipped**
-- `uv run ruff check .` → **clean**
+- `uv run ruff check . && uv run ruff format --check .` → **clean**
 - `npm run build` → **clean** (chunk-size warning only)
-- `npx playwright test e2e/questionnaire.spec.ts e2e/review.spec.ts e2e/versions.spec.ts` → **5 passed**
-- `TESTPLAN.md` statuses updated: **QSTN-01, QSTN-02, REVW-01, REVW-02, VERS-01, VERS-02 E2E rows green**.
+- `DOCKER_DEV=1 npx playwright test` → **45 passed**
+- `TESTPLAN.md` statuses updated: **all E2E rows green**.
 
 ## Active files of note
 
-- `frontend/src/pages/ContributorDomainsPage.tsx` — contributor's assigned domain list.
-- `frontend/src/pages/DomainQuestionnairePage.tsx` — answer questions, follow-ups, compile, submit.
-- `frontend/src/pages/ReviewerDomainsPage.tsx` — review queue for reviewer.
-- `frontend/src/pages/ReviewDomainPage.tsx` — approve, defer, or revise-and-approve a domain.
-- `frontend/src/pages/AdminVersionsPage.tsx` — version list and PDF export.
-- `frontend/e2e/questionnaire.spec.ts` — QSTN-01, QSTN-02 E2E.
-- `frontend/e2e/review.spec.ts` — REVW-01, REVW-02 E2E.
-- `frontend/e2e/versions.spec.ts` — VERS-01, VERS-02 E2E.
-- `frontend/e2e/api.ts` — `loginAsApi` helper for JWT seeding via API.
-- `app/api/routers/test.py` — test-only reset/list endpoints for E2E isolation.
-- `app/services/answers.py` — reviewer allowed to read domain progress; fixed `sqlite3.Row` dict access.
-- `app/ai/fakes.py` — `FakeLLM` preserves explicit `default` and provides deterministic E2E fallbacks.
-- `frontend/e2e/setup.py` — idempotent demo seed with answer/assignment reset.
+- `frontend/e2e/auth.spec.ts`, `signup.spec.ts`, `users.spec.ts`, `seeding.spec.ts`, `domain-assignment.spec.ts`, `questionnaire.spec.ts`, `review.spec.ts`, `versions.spec.ts` — full E2E coverage.
+- `frontend/e2e/api.ts` — E2E helpers including `testLogin` to bypass TOTP in API setup.
+- `frontend/e2e/fixtures.ts` — `resetAll` isolation fixture.
+- `frontend/e2e/setup.py` — Docker dev stack baseline seeder.
+- `app/api/routers/test.py` — test-only endpoints for reset, mode toggles, invitation/email introspection.
+- `app/api/routers/users.py` — `GET /users/invitations` for admin pending-invitations UI.
+- `app/services/answers.py` — domain progress returns `contributor_id`/`reviewer_id`.
+- `app/services/auth.py` — password-only login returns `totp_required` for enrolled users.
+- `app/services/users.py` — deactivation resets in-progress/ready domains to `pending_questions`.
+- `frontend/src/pages/AdminUsersPage.tsx` — pending invitations list.
+- `frontend/src/pages/LoginPage.tsx` — disables password autofill to prevent strict-mode violations.
+- `frontend/src/pages/ReviewDomainPage.tsx` — self-review warning keyed to `contributor_id`.
+- `frontend/src/auth/AuthContext.tsx` — distinguishes `totp_required` from invalid credentials.
+- `frontend/playwright.config.ts` — single worker / non-parallel for Docker dev SQLite.
 
 ## Known technical notes
 
-- E2E tests now log in via API and set `wispgen_token` in `localStorage` to avoid TOTP clock drift during long setup sequences.
-- VERS-02 E2E resets, assigns, submits, and approves all 14 domains via API to drive the version status to `complete`.
-- Test-only endpoints are gated by `settings.enable_test_endpoints` (enabled in Playwright config via `WISP_ENV=test`).
+- `resetAll` rebuilds a single in-progress WISP version with 14 empty domains, deterministic seeded questions, resets the demo voucher, clears lockout state, deletes ad-hoc `e2e%` users, and resets service doubles.
+- Backend `/test/login` bypasses TOTP to avoid clock-drift flakes during long API-driven E2E setup sequences.
+- Workers are forced to 1 and `fullyParallel: false` under `DOCKER_DEV=1` to avoid SQLite contention.
 
 ## Next task: Task 19
 
