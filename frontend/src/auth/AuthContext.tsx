@@ -111,9 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("wispgen_pending_email", email);
         return { kind: "totp_required" };
       } catch (err) {
-        if (err instanceof ApiResponseError && err.status === 401 && !totpCode) {
+        if (
+          err instanceof ApiResponseError &&
+          err.status === 401 &&
+          !totpCode &&
+          err.error.code === "totp_required"
+        ) {
           // The backend requires a TOTP code for enrolled users and returns 401
-          // for password-only attempts. Store credentials and prompt for TOTP.
+          // with code `totp_required` for password-only attempts. Store
+          // credentials and prompt for TOTP.
           pendingRef.current = { email, password };
           localStorage.setItem("wispgen_pending_email", email);
           return { kind: "totp_required" };

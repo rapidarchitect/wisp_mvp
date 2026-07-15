@@ -100,15 +100,50 @@ Rules: one steps module per feature file; cross-feature Givens live in `common_s
 | VERS-04 | Only one version in progress | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
 | VERS-05 | Prior versions remain exportable | wisp-versioning-and-export | integration | test_wisp_versioning_and_export | Task 16 | green |
 | SIGN-01 | Card signup provisions workspace | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 17 | green |
+| SIGN-02 | Voucher skips card payment | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 20 | green |
+| SIGN-03 | Declined card leaves no workspace | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 20 | green |
+| SIGN-04 | Workspace address must be unique | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 20 | green |
+| SIGN-05 | Corporate vitals validation (outline) | signup-and-onboarding | e2e | e2e/signup.spec.ts | Task 20 | green |
 | AUTH-01 | First login requires TOTP enrollment | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
 | AUTH-02 | Login with password and TOTP | authentication | e2e | e2e/auth.spec.ts | Task 17 | green |
-| USER-02 | Invited user activates account | user-and-role-management | e2e | e2e/activate.spec.ts | Task 17 | green |
+| AUTH-03 | Wrong password rejected | authentication | e2e | e2e/auth.spec.ts | Task 20 | green |
+| AUTH-04 | Wrong TOTP counts toward lockout | authentication | e2e | e2e/auth.spec.ts | Task 20 | green |
+| AUTH-05 | Lock after 5 failed attempts | authentication | e2e | e2e/auth.spec.ts | Task 20 | green |
+| AUTH-06 | Expired session preserves saved work | authentication | e2e | e2e/auth.spec.ts | Task 20 | green |
+| AUTH-07 | Password reset via 30-min link | authentication | e2e | e2e/auth.spec.ts | Task 20 | green |
+| USER-01 | Invite user with two roles | user-and-role-management | e2e | e2e/users.spec.ts | Task 20 | green |
+| USER-02 | Invited user activates account | user-and-role-management | e2e | e2e/users.spec.ts | Task 17 | green |
+| USER-03 | One user holds all three roles | user-and-role-management | e2e | e2e/users.spec.ts | Task 20 | green |
+| USER-04 | Duplicate invitation rejected | user-and-role-management | e2e | e2e/users.spec.ts | Task 20 | green |
+| USER-05 | Expired invitation link refused | user-and-role-management | e2e | e2e/users.spec.ts | Task 20 | green |
+| USER-06 | Deactivation flags domains, keeps answers | user-and-role-management | e2e | e2e/users.spec.ts | Task 20 | green |
+| SEED-01 | 14 domains seeded, 5-10 questions each | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| SEED-02 | Demo company after deployment | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| SEED-03 | Research outage degrades gracefully | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| SEED-04 | Admin adds custom question | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| SEED-05 | Admin disables seeded question | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| SEED-06 | Regeneration only when unanswered | domain-seeding-and-questions | e2e | e2e/seeding.spec.ts | Task 20 | green |
+| ASSN-01 | Assign contributor and reviewer | domain-assignment | e2e | e2e/domain-assignment.spec.ts | Task 20 | green |
+| ASSN-02 | One contributor, one reviewer at a time | domain-assignment | e2e | e2e/domain-assignment.spec.ts | Task 20 | green |
+| ASSN-03 | Reassignment preserves work | domain-assignment | e2e | e2e/domain-assignment.spec.ts | Task 20 | green |
+| ASSN-04 | Contributors see only assigned domains | domain-assignment | e2e | e2e/domain-assignment.spec.ts | Task 20 | green |
+| ASSN-05 | Unassigned domains flagged to Admin | domain-assignment | e2e | e2e/domain-assignment.spec.ts | Task 20 | green |
 | QSTN-01 | Answer triggers up to 3 AI follow-ups | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 18 | green |
 | QSTN-02 | AI compiles domain final answer | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 18 | green |
+| QSTN-03 | Submission sends domain to review | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 20 | green |
+| QSTN-04 | Skips defer but block submission | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 20 | green |
+| QSTN-05 | Save and resume exact progress | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 20 | green |
+| QSTN-06 | AI outage falls back to plain answer | contributor-questionnaire | e2e | e2e/questionnaire.spec.ts | Task 20 | green |
 | REVW-01 | Reviewer approves compiled answer | review-workflow | e2e | e2e/review.spec.ts | Task 18 | green |
 | REVW-02 | Edit produces AI revision, direct approval | review-workflow | e2e | e2e/review.spec.ts | Task 18 | green |
+| REVW-03 | Reviewer defers decision | review-workflow | e2e | e2e/review.spec.ts | Task 20 | green |
+| REVW-04 | Self-review allowed with warning | review-workflow | e2e | e2e/review.spec.ts | Task 20 | green |
+| REVW-05 | All approved completes the WISP | review-workflow | e2e | e2e/review.spec.ts | Task 20 | green |
 | VERS-01 | Draft export carries watermark | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 18 | green |
 | VERS-02 | Complete WISP exports clean | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 18 | green |
+| VERS-03 | New version clones approved baseline | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 20 | green |
+| VERS-04 | Only one version in progress | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 20 | green |
+| VERS-05 | Prior versions remain exportable | wisp-versioning-and-export | e2e | e2e/versions.spec.ts | Task 20 | green |
 
 Browser-level duplicates (full Playwright coverage, Tasks 17, 18, 20): every scenario above gains an `e2e` row realized as a Playwright spec; the canonical mapping is one spec file per feature (Section 3). Playwright specs assert user-visible outcomes only; exhaustive variants stay at the pytest-bdd level.
 

@@ -278,6 +278,8 @@ async def get_domain_progress(db: TenantDB, *, user_id: int, code: str) -> dict:
         "code": domain["code"],
         "name": domain["name"],
         "status": domain["status"],
+        "contributor_id": domain_dict.get("contributor_id"),
+        "reviewer_id": domain_dict.get("reviewer_id"),
         "questions": question_list,
         "submit_ready": submit_ready,
     }

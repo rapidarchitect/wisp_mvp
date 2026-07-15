@@ -86,7 +86,7 @@ async def deactivate_user(
         await db.execute(
             f"""
             UPDATE domains SET status = 'pending_questions'
-            WHERE id IN ({placeholders}) AND status = 'assigned'
+            WHERE id IN ({placeholders}) AND status IN ('assigned', 'ready', 'in_progress')
             """,
             tuple(domain_ids),
         )

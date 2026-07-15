@@ -240,7 +240,10 @@ async def login(
         )
         return {"status": "session", "token": token}
 
-    if totp_code is None or not verify_totp(user["totp_secret"], totp_code):
+    if totp_code is None:
+        raise AuthorizationError("TOTP code required", code="totp_required")
+
+    if not verify_totp(user["totp_secret"], totp_code):
         await record_failed_login(db, user)
         await audit(
             db,

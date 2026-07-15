@@ -28,6 +28,8 @@ TOTP_SECRET = "JBSWY3DPEHPK3PXP"  # Fixed secret for deterministic tests.
 
 def _init_control_db() -> int:
     """Ensure control DB exists and demo tenant is registered."""
+    from datetime import UTC, datetime, timedelta  # local import for setup script
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     schema = (ROOT / "app" / "db" / "schema" / "control.sql").read_text()
     conn = sqlite3.connect(CONTROL_DB)
@@ -35,14 +37,27 @@ def _init_control_db() -> int:
         conn.executescript(schema)
         conn.commit()
         existing = conn.execute("SELECT id FROM tenants WHERE slug = ?", ("demo",)).fetchone()
-        if existing:
-            return existing[0]
-        cur = conn.execute(
-            "INSERT INTO tenants (slug, company_name, address, status) VALUES (?, ?, ?, ?)",
-            ("demo", "Demo Accounting Firm", "1 Demo Way", "active"),
-        )
-        conn.commit()
-        return cur.lastrowid
+        if existing is None:
+            cur = conn.execute(
+                "INSERT INTO tenants (slug, company_name, address, status) VALUES (?, ?, ?, ?)",
+                ("demo", "Demo Accounting Firm", "1 Demo Way", "active"),
+            )
+            tenant_id = cur.lastrowid
+        else:
+            tenant_id = existing[0]
+        # Seed an unredeemed E2E voucher if absent.
+        voucher = conn.execute(
+            "SELECT code FROM vouchers WHERE code = ?",
+            ("WISP-2026-DEMO",),
+        ).fetchone()
+        if voucher is None:
+            expires = (datetime.now(UTC) + timedelta(days=365)).isoformat()
+            conn.execute(
+                "INSERT INTO vouchers (code, issued_to, expires_at) VALUES (?, ?, ?)",
+                ("WISP-2026-DEMO", "e2e@wisp.llc", expires),
+            )
+            conn.commit()
+        return tenant_id
     finally:
         conn.close()
 
@@ -169,9 +184,7 @@ def _seed_assignment() -> None:
                 """,
                 (domain[0], contributor[0], reviewer[0]),
             )
-            conn.execute(
-                "UPDATE domains SET status = ? WHERE id = ?", ("assigned", domain[0])
-            )
+            conn.execute("UPDATE domains SET status = ? WHERE id = ?", ("assigned", domain[0]))
             conn.commit()
     finally:
         conn.close()

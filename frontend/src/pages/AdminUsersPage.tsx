@@ -26,10 +26,19 @@ type User = {
   status: string;
 };
 
+type Invitation = {
+  email: string;
+  roles: string;
+  token: string;
+  expires_at: string;
+  accepted_at: string | null;
+};
+
 const availableRoles = ["admin", "contributor", "reviewer"];
 
 export function AdminUsersPage() {
   const [users, setUsers] = useState<User[] | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[] | null>(null);
   const [email, setEmail] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>(["contributor"]);
   const [loading, setLoading] = useState(false);
@@ -43,8 +52,17 @@ export function AdminUsersPage() {
       );
   };
 
+  const loadInvitations = () => {
+    apiFetch<Invitation[]>("/users/invitations")
+      .then(setInvitations)
+      .catch((err) =>
+        setError(err instanceof ApiResponseError ? err.error.message : "Failed to load invitations")
+      );
+  };
+
   useEffect(() => {
     loadUsers();
+    loadInvitations();
   }, []);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -59,6 +77,7 @@ export function AdminUsersPage() {
       setEmail("");
       setSelectedRoles(["contributor"]);
       loadUsers();
+      loadInvitations();
     } catch (err) {
       const message = err instanceof ApiResponseError ? err.error.message : "Invite failed";
       setError(message);
@@ -127,6 +146,36 @@ export function AdminUsersPage() {
                   <ListItemText
                     primary={u.email}
                     secondary={`${u.roles.join(", ")} — ${u.status}`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Pending invitations
+          </Typography>
+          {invitations === null && <CircularProgress />}
+          {invitations && invitations.length === 0 && (
+            <Typography color="text.secondary">No pending invitations.</Typography>
+          )}
+          {invitations && invitations.length > 0 && (
+            <List>
+              {invitations.map((inv) => (
+                <ListItem key={inv.token}>
+                  <ListItemText
+                    primary={inv.email}
+                    secondary={(() => {
+                      try {
+                        return (JSON.parse(inv.roles) as string[]).join(", ");
+                      } catch {
+                        return inv.roles;
+                      }
+                    })()}
                   />
                 </ListItem>
               ))}

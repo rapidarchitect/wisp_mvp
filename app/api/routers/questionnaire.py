@@ -27,12 +27,14 @@ async def answer_question(
     """Save a contributor's answer to a question and generate follow-ups."""
     user = await get_current_user(request, authorization)
     db = get_tenant_db_from_request(request)
+    llm = getattr(request.app.state, "llm", None)
     return await save_answer(
         db,
         contributor_id=user["id"],
         question_id=question_id,
         value=payload.get("value"),
         skipped=payload.get("skipped", False),
+        llm=llm,
     )
 
 

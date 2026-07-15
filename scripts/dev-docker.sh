@@ -19,7 +19,7 @@ docker compose up -d --build
 # Wait for backend health
 echo "Waiting for backend health..."
 for _ in {1..30}; do
-  if curl -fsS http://localhost:8000/health >/devdev/null 2&>/dev/null; then
+  if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
     break
   fi
   sleep 1
