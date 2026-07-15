@@ -8,9 +8,32 @@ HOST="${HOST:-}"
 KEY="${KEY:-./.keys/wispgen-deploy.pem}"
 USER="${USER:-ubuntu}"
 
+# Allow --target <host> for explicit CLI usage.
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target)
+      HOST="$2"
+      shift 2
+      ;;
+    --key)
+      KEY="$2"
+      shift 2
+      ;;
+    --user)
+      USER="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
 if [[ -z "$HOST" ]]; then
   echo "Usage: HOST=1.2.3.4 ./scripts/deploy.sh"
-  echo "Override defaults with KEY=... USER=..."
+  echo "       ./scripts/deploy.sh --target 1.2.3.4"
+  echo "Override defaults with KEY=... USER=... or --key/--user"
   exit 1
 fi
 

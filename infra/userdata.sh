@@ -15,12 +15,18 @@ apt-get install -y \
   awscli \
   rsync
 
-# Create service user
-useradd --system --create-home --home-dir /srv/wispgen --user-group wispgen || true
+# Create service user with a shell so bootstrap commands and deploy scripts can run as wispgen.
+useradd --system --create-home --home-dir /srv/wispgen --shell /bin/bash --user-group wispgen || true
 
 # Directories
 mkdir -p /srv/wispgen/{src,data/tenants,frontend,backup,env,logs}
 chown -R wispgen:wispgen /srv/wispgen
+
+# Clone the project source so deploy.sh has something to pull on first run.
+# The repository is public; deploy.sh later uses git pull to update it.
+if [[ ! -d /srv/wispgen/src/.git ]]; then
+  su - wispgen -c "git clone https://github.com/rapidarchitect/wisp_mvp.git /srv/wispgen/src"
+fi
 
 # Install uv (project package manager)
 su - wispgen -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
