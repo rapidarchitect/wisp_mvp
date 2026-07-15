@@ -61,16 +61,22 @@
 - Backend `/test/login` bypasses TOTP to avoid clock-drift flakes during long API-driven E2E setup sequences.
 - Workers are forced to 1 and `fullyParallel: false` under `DOCKER_DEV=1` to avoid SQLite contention.
 
-## Next task: Task 19
+## Task 19 status: in progress on branch `task-19-infrastructure`
 
-**Objective:** Production infrastructure — Terraform, nginx, certbot, Docker, AWS deployment.
+**Objective:** Production infrastructure — Terraform, nginx, certbot, systemd, EC2 deployment.
 
-**Key constraints:**
-- Infrastructure as code in `infra/`.
-- Docker multi-stage build for the backend.
-- nginx reverse proxy with Let's Encrypt (certbot).
-- AWS ECS/Fargate or EC2 deployment path.
+**Completed so far:**
+- Audited `infra/` files against the Task 19 plan.
+- Fixed `userdata.sh` to give the `wispgen` user a shell and clone the repo on first boot.
+- Extended `scripts/deploy.sh` with `--target`, `--key`, `--user` flags.
+- Updated `infra/README.md` and `TESTPLAN.md` EBS encryption status.
 
-**Verification target:**
-- `docker build -t wispgen -f infra/Dockerfile .` succeeds.
-- `terraform plan` from `infra/terraform/` succeeds (dry-run).
+**Verification:**
+- `terraform plan` clean (13 resources to add).
+- `docker build -t wispgen -f infra/Dockerfile .` clean.
+- Shell scripts pass `bash -n`.
+- Full pytest, BDD, lint, and npm build pass.
+
+**Remaining:**
+- Commit Task 19 changes and open PR.
+- Live `terraform apply`, DNS setup, and certbot DNS-01 issuance are intentionally left to the human operator per Non-Goal 5.

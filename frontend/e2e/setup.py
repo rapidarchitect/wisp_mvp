@@ -169,9 +169,7 @@ def _seed_assignment() -> None:
                 """,
                 (domain[0], contributor[0], reviewer[0]),
             )
-            conn.execute(
-                "UPDATE domains SET status = ? WHERE id = ?", ("assigned", domain[0])
-            )
+            conn.execute("UPDATE domains SET status = ? WHERE id = ?", ("assigned", domain[0]))
             conn.commit()
     finally:
         conn.close()

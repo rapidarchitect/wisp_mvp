@@ -128,7 +128,7 @@ Rules: every scenario has exactly one owning SPEC task; Tasks 01, 02, 08, 11, 19
 | Versioning and Export (6 criteria) | VERS-01..05; version history listing: VERS-05 | no |
 | Cross-cutting: tenant isolation (C-01) | isolation assertion in every integration fixture + Task 02 unit tests | no |
 | Cross-cutting: wildcard subdomain resolution | Task 02 unit tests; e2e smoke on demo tenant | no |
-| Cross-cutting: EBS encryption at rest | Terraform `encrypted = true` in `infra/main.tf`; verified by `terraform plan` review | no |
+| Cross-cutting: EBS encryption at rest | Terraform `encrypted = true` in `infra/main.tf`; verified by `terraform plan` review | committed |
 | Cross-cutting: LLM provider switching | Task 08 unit tests (factory selection by env) | no |
 | Cross-cutting: no tenant data in logs (C-18) | log-capture unit tests on notify/audit/error paths, Task 03 + 13 | no |
 | Cross-cutting: notification service (Task 11) | `tests/unit/test_services_notifications.py` (98% coverage); exercised by every "should be notified" Then step in USER/ASSN/QSTN/REVW scenarios | no |
