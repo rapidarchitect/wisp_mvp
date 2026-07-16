@@ -21,11 +21,12 @@ After provisioning, you will see the TOTP enrollment screen. Scan the QR code wi
 
 ## 2. Logging in
 
-Return to your workspace address and log in with your email, password, and the current TOTP code.
+Return to your workspace address and log in in two steps.
 
 1. Enter your email and password.
-2. Open your authenticator app and enter the six-digit code.
-3. Click **Log in**.
+2. Click **Continue**.
+3. Open your authenticator app and enter the six-digit code.
+4. Click **Verify**.
 
 If your TOTP is wrong five times in a row, the account locks for 15 minutes. Use the password-reset link if you forget your password; the link expires in 30 minutes.
 
